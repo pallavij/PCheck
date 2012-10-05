@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+
+<project name="test" default="compile">
+
+  <property name="test.dir" value="${basedir}/test"/>
+  <property name="build.dir" value="${basedir}/build"/>
+  <property name="build.classes" value="${build.dir}/classes"/>
+
+  <property name="target.jdk" value="${ant.java.version}"/>
+
+  <path id="project.classpath">
+	<fileset dir="${build.classes}"/>
+  </path>
+
+  <target name="compile">
+    <javac srcdir="${test.dir}" destdir="${build.classes}"
+           target="${target.jdk}" debug="on">
+      <classpath refid="project.classpath"/>
+    </javac>
+  </target>
+
+  <target name="clean">
+    <delete dir="${build.classes}/examples" quiet="true"/>
+  </target>
+
+</project>

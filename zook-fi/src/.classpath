@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="contrib/bookkeeper/benchmark"/>
+	<classpathentry kind="src" path="contrib/bookkeeper/src/java"/>
+	<classpathentry kind="src" path="contrib/bookkeeper/test"/>
+	<classpathentry kind="src" path="contrib/fatjar/src/java"/>
+	<classpathentry kind="src" path="contrib/rest/src/java"/>
+	<classpathentry kind="src" path="contrib/rest/src/test"/>
+	<classpathentry kind="src" path="contrib/zooinspector/src/java"/>
+	<classpathentry kind="src" path="java/generated"/>
+	<classpathentry kind="src" path="java/main"/>
+	<classpathentry kind="src" path="java/systest"/>
+	<classpathentry kind="src" path="java/test"/>
+	<classpathentry kind="src" path="recipes/lock/src/java"/>
+	<classpathentry kind="src" path="recipes/lock/test"/>
+	<classpathentry kind="src" path="recipes/queue/src/java"/>
+	<classpathentry kind="src" path="recipes/queue/test"/>
+	<classpathentry kind="lib" path="contrib/zooinspector/lib/jtoaster-1.0.4.jar"/>
+	<classpathentry kind="lib" path="java/lib/ivy-2.1.0.jar"/>
+	<classpathentry kind="lib" path="java/lib/jline-0.9.94.jar"/>
+	<classpathentry kind="lib" path="java/lib/junit-4.4.jar"/>
+	<classpathentry kind="lib" path="java/lib/log4j-1.2.15.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

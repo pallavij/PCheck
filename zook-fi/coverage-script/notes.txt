@@ -1,0 +1,106 @@
+
+# #################### Covered states
+
+    01  FLE.l (NT-1),
+    02  FLE.l (NT-2),
+    03  FLE.l (NT-LF),
+    04  FLE.l (NT-LF-SE),
+    05  FLE.l (NT-LF-SE-ND),
+    06  FLE.l (NT-LF-SE-QA),
+    07  FLE.l (NT-LK),
+    08  FLE.l (NT-LK-1),
+    09  FLE.l (NT-LK-2),
+    10  FLE.l (NT-LK-3),
+    11  FLE.l (NT-LK-4),
+    12  FLE.l (NT-LK-5),
+    13  FLE.l (NT-LK-HV-1),
+    14  FLE.l (NT-LK-HV-2),
+    15  FLE.l (NT-LK-HV-3),
+    16  FLE.l (NT-LK-HV-4),
+    17  FLE.l (NT-LK-ND),
+    18  FLE.l (NT-LK-QR-1),
+    19  FLE.l (NT-LK-QR-2),
+    20  FLE.l (NT-LK-QR-N0),
+    21  FLE.l (NT-LK-SV),
+    22  QP.rn (FL-1),
+    23  QP.rn (LD-1),
+    24  QP.rn (LK-1),
+
+# #################### Uncovered states
+
+    01  FLE.l (N0-1),
+    02  FLE.l (N0-HD),
+    03  FLE.l (N0-ND),
+    04  FLE.l (NO-2),
+
+        Must be triggered by timeout.
+
+
+    05  FLE.l (NT-LF-OE),
+        
+        We've seen enough nodes that select a node N
+        as a leader.  OE means out of election reach
+        quorum, and leader is correct.
+
+
+    06  FLE.l (NT-LK-NE-1),
+    07  FLE.l (NT-LK-NE-2),
+    08  FLE.l (NT-LK-NE-3),
+    09  FLE.l (NT-LK-NE-4),
+    10  FLE.l (NT-LK-NE-HV),
+    11  FLE.l (NT-LK-NE-SV),
+
+        NE means new epoch.
+        Epoch is larger than my current logical clock.
+        When is this possible?  Need to see when 
+        epoch is increased.  Then we have this situation
+        where the we have NE-HV and NE-SV.
+
+
+    12  FLE.l (NT-LK-OE),
+
+        I get old epoch, simply ignore this (by break-ing)
+
+
+    13  FLE.l (NT-LK-QR-HV),
+
+        This case is interest. It's saying that I've seen
+        messages that reach a quorum that they select a node
+        N, but then, when I wait, there is a new message
+        coming in.  This new message might has a higher vote
+        than what has been proposed so far, so I'm adding
+        this to the queue, and then I'm break-ing.
+
+
+    14  FLE.l (NT-LK-QR-NT),
+
+        (has been handled by NT-LK-QR-2, HV, SV.
+
+    15  FLE.l (NT-LK-QR-SV),
+
+        ignore smaller vote.
+
+
+    16  FLE.l (NT-LK-RA-1),
+    17  FLE.l (NT-LK-RA-2),
+    18  FLE.l (NT-LK-RA-3),
+
+        This is node3's bug.  Somehow I've received from
+        everyone, and no one is leading,  so I just
+        conclude myself to be leading.
+
+
+    19  FLE.l (NT-OB),
+
+        Just observer.
+
+    20  QP.rn (FL-EX),
+    21  QP.rn (FL-FN),
+    22  QP.rn (LD-EX),
+    23  QP.rn (LD-FN),
+    24  QP.rn (LD-FN-LE),
+    25  QP.rn (LK-EX),
+    26  QP.rn (OB-1),
+    27  QP.rn (OB-EX),
+    28  QP.rn (OB-FN),
+

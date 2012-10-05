@@ -1,0 +1,281 @@
+<project name="Zookeeper With FI" default="compile-fi">
+
+
+  <target name="compile-fi" depends="compile"/>
+
+
+  <!-- =================================================================
+
+       Main things:
+
+       - fibase : compile src/fi/base/*
+       - firt   : weave src/fi/base* to rt.jar/classes.jar
+       - fi : weave application classes
+
+       - fijav  : just quickly compile src/fi/*.java
+       - fiaj   : just quickly compile src/fi/*.aj to see errors/warnings
+
+       ================================================================= -->
+
+
+  <!-- =================================================================
+       FI properties (please modify accordingly, my setup is for MAC)
+       ================================================================= -->
+  <property name="java.classes.dir" location="/System/Library/Frameworks/JavaVM.framework/Versions/CurrentJDK/Classes"/>
+  <property name="javasdk.file" location="${java.classes.dir}/classes.jar"/>
+  <property name="jsse.file" location="${java.classes.dir}/jsse.jar"/>
+  <property name="jce.file"  location="${java.classes.dir}/jce.jar"/>  
+  <property name="antjar.file" location="/usr/share/ant/lib/ant.jar"/> <!-- for linux? -->
+  
+  <!-- =================================================================
+       Emma related definitions
+       ================================================================= -->
+  <property name="emma.dir" value="${basedir}/lib" />
+  <path id="emma.lib">
+	  <pathelement location="${emma.dir}/emma.jar" />
+	  <pathelement location="${emma.dir}/emma_ant.jar" />
+  </path>
+
+  <taskdef resource="emma_ant.properties" classpathref="emma.lib" />
+  <property name="emma.enabled" value="true" />
+
+  <property name="emma.coverage.out.file" value="${basedir}/emma/coverage.emma" />
+  <property name="emma.metadata.out.file" value="${basedir}/emma/metadata.emma" />
+
+
+
+  <!-- =================================================================
+       No need to be modified
+       ================================================================= -->
+  <property name="fi.lib.dir" location="${basedir}/lib/fi"/>
+  <property name="ajlib" location="${fi.lib.dir}/aspectj"/>
+  <property name="jollib" location="${fi.lib.dir}/jol"/>
+  <property name="rpclib" location="${fi.lib.dir}/xmlrpc"/>
+  <property name="fi.src.dir" value="${src.dir}/fi"/>
+
+
+  <path id="weave.class.path">
+    <pathelement location="${ajlib}/aspectjrt-1.6.5.jar"/>
+    <pathelement location="${ajlib}/aspectjtools-1.6.5.jar"/>
+    <pathelement location="${jollib}/jol.jar"/>
+    <pathelement location="build/woven-rt.jar"/>
+    <fileset dir="${java.classes.dir}" includes="*.jar"/>
+    <pathelement location="${rpclib}/xmlrpc-server-3.1.3.jar"/>
+    <pathelement location="${rpclib}/xmlrpc-client-3.1.3.jar"/>
+    <pathelement location="${rpclib}/xmlrpc-common-3.1.3.jar"/>
+    <pathelement location="${rpclib}/ws-commons-util-1.0.2.jar"/>
+    <pathelement location="${rpclib}/commons-logging-1.1.jar"/>
+    <pathelement location="${build.classes}"/>
+  </path>
+
+  
+  <!-- =================================================================
+       olg: compile fi/*.olg
+       ================================================================= -->
+  <target name="olg">
+    <jar jarfile="build/classes/olg.jar">
+      <fileset dir="src/fi/destini" includes="*.olg"/>
+    </jar>
+  </target>
+
+
+  <!-- =================================================================
+       fibase: compile fi/base/*.java, *.aj
+       ================================================================= -->
+  <target name="fibase" depends="init">
+
+    <echo message="Start FI-BASE ..."/>
+
+    <javac
+       srcdir="${fi.src.dir}"
+       includes="base/*.java"
+       destdir="${build.classes}"
+       debug="${javac.debug}"
+       optimize="${javac.optimize}"
+       target="${javac.version}"
+       source="${javac.version}">
+      <compilerarg line="${javac.args} ${javac.args.warnings}" />
+      <classpath refid="project.classpath"/>
+    </javac>
+  </target>
+
+
+  <!-- =================================================================
+       firt: weave src/fi/base/ to rt.jar
+       ================================================================= -->
+  <target name="firt" depends="fibase">
+
+    <echo message=" fi.lib.dir = ${fi.lib.dir} "/>
+
+    <taskdef resource="org/aspectj/tools/ant/taskdefs/aspectjTaskdefs.properties">
+      <classpath>
+	      <fileset dir="${fi.lib.dir}/aspectj" includes="aspect*.jar"/>
+      </classpath>
+    </taskdef>
+
+    <path id="ajlibclasspath">
+      <fileset dir="${fi.lib.dir}/aspectj" includes="aspect*.jar"/>
+    </path>
+
+    <echo message="Weaving rt.jar ..."/>
+
+    <iajc inpath="${javasdk.file}"
+          outjar="build/woven-rt.jar"
+          outxml="true"
+          srcdir="${fi.src.dir}"
+          includes="base/weavert.aj, base/Context.java, base/ClassWC.java"
+          classpathref="ajlibclasspath">
+      <classpath refid="project.classpath"/>
+    </iajc>
+  </target>
+  
+  
+  <!-- =================================================================
+       fijav: compile fi/*.java only
+       ================================================================= -->
+  <target name="fijav" depends="init">
+
+    <taskdef resource="org/aspectj/tools/ant/taskdefs/aspectjTaskdefs.properties">
+      <classpath>
+	  <fileset dir="${fi.lib.dir}/aspectj" includes="aspect*.jar"/>
+      </classpath>
+    </taskdef>
+
+    <echo message="Start FI-JAVA Fast ..."/>
+
+    <iajc srcdir="${fi.src.dir}"
+          includes="*.java"
+          destDir="${build.classes}"
+          debug="${javac.debug}"
+          target="${javac.version}"
+          source="${javac.version}"
+          deprecation="${javac.deprecation}"
+          classpathref="weave.class.path"
+          bootclasspathref="weave.class.path">
+      <classpath refid="project.classpath"/>
+    </iajc>
+
+
+  </target>
+  
+  
+  <!-- =================================================================
+       fiaj: compile fi/*.aj only
+       ================================================================= -->
+  <target name="fiaj" depends="init">
+
+    <taskdef resource="org/aspectj/tools/ant/taskdefs/aspectjTaskdefs.properties">
+      <classpath>
+	  <fileset dir="${fi.lib.dir}/aspectj" includes="aspect*.jar"/>
+      </classpath>
+    </taskdef>
+
+    <echo message="Start FI-AJ Fast ..."/>
+
+    <iajc 
+          srcdir="${fi.src.dir}"
+          includes="*.aj, *.java"
+          excludes="fiHooks.aj"
+          destDir="${build.classes}"
+          debug="${javac.debug}"
+          target="${javac.version}"
+          source="${javac.version}"
+          deprecation="${javac.deprecation}"
+          classpathref="weave.class.path"
+          bootclasspathref="weave.class.path">
+      <classpath refid="project.classpath"/>
+    </iajc>
+
+  </target>
+
+
+
+  <target name="fizoo" depends="init">
+
+    <taskdef resource="org/aspectj/tools/ant/taskdefs/aspectjTaskdefs.properties">
+      <classpath>
+	 <fileset dir="${fi.lib.dir}/aspectj" includes="aspect*.jar"/>
+      </classpath>
+    </taskdef>
+
+    <echo message="Start weaving ZooKeeper ..."/>
+
+    <!-- files:
+         org/apache/cassandra/db/commitlog/*.java,
+         org/apache/cassandra/net/MessagingService.java,
+         org/apache/cassandra/io/*.java,
+         org/apache/cassandra/db/Table.java,
+
+    jason:
+         org/apache/zookeeper/ZooKeeper.java,
+         org/apache/zookeeper/server/quorum/*.java,
+    -->
+	 
+    <iajc 
+          srcdir="${java.src.dir};${fi.src.dir}"
+          includes="org/apache/zookeeper/ZooKeeper.java,
+		    org/apache/zookeeper/server/**/*.java,
+                    *.aj, *.java"
+          destdir="${build.classes}"
+          debug="${javac.debug}"
+          source="${javac.version}"
+          classpathref="weave.class.path"
+          bootclasspathref="weave.class.path">
+      <classpath refid="project.classpath"/> 
+    </iajc>
+
+
+    <echo message="Stop weaving Core ..."/>
+
+    <antcall target="emma-instr"/>
+    <!--<antcall target="cobertura-instr"/>-->
+
+  </target>
+
+  
+  <target name="cobertura-instr">
+	<delete file="${cobertura.metadata.out.file}"/> 
+	<delete dir="${cobertura.build.classes}"/>
+	<mkdir dir="${cobertura.build.classes}"/>
+	<cobertura-instrument datafile="${cobertura.metadata.out.file}" todir="${cobertura.build.classes}">
+		<fileset dir="${build.classes}">
+			<exclude name="org/fi/**/*.class"/>
+		</fileset>		
+	</cobertura-instrument>	
+  </target>     
+
+
+  <target name="emma-instr">
+      <emma enabled="${emma.enabled}">
+	      <instr instrpath="${build.classes}" mode="overwrite" 
+		      metadatafile="${emma.metadata.out.file}"> 
+		      <filter includes="*FastLeaderElection*" excludes="*AuthFastLeaderElection*"/>
+		      <filter includes="*QuorumCnxManager*"/>
+		      <filter includes="*Leader.class"/>
+		      <!--Might need this for the client write protocol-->
+		      <!--<filter includes="*apache*"/>-->
+	      </instr>			      
+      </emma>
+  </target>     
+
+
+ <!-- PALLAVI: Used for client write protocols -->
+ <!-- 
+ <target name="emma-instr">
+    <emma enabled="${emma.enabled}">
+	    <instr instrpath="${build.classes}" mode="overwrite" metadatafile="${emma.metadata.out.file}"> 
+		      <filter includes="*Leader*"/>
+		      <filter includes="*Follower*"/>
+		      <filter includes="*Learner*"/>
+		      <filter includes="*LearnerHandler*"/>
+	    </instr>			      
+    </emma>
+</target>     
+-->
+
+
+  <target name="fi" depends="fizoo"/>
+
+
+</project>
+

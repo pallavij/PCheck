@@ -1,0 +1,469 @@
+
+package org.fi;
+
+import java.util.*;
+import java.io.*;
+
+public class Reorder extends Thread{
+	private static Map<Event, Object> objsToWaitOn;
+	private static List<Event> events;
+	private static List<Integer> evtOrder;
+	private static Map<String, List<Integer>> nodeToEvtOrder;
+	private static List<Integer> evtOrderPfxToTry;
+	private static Pair<Integer> depToTry;
+	private static List<String> evtOrdersAlreadyExp;
+	private static int nEvtBeingOrdered;
+	private static Set<Event> readEvts;
+	private static int nMsgsRecd = 0;
+
+	public static void initBeforeEachExp(){
+		Util.MESSAGE("Initialized before an experiment started");
+
+		FMServer.removeWaitStates();
+		FMServer.clearQueueToNumElems();
+
+		objsToWaitOn = new HashMap<Event, Object>();
+		events = new HashSet<Event>();
+		evtOrder = new LinkedList<Integer>();
+		nodeToEvtOrder = new HashMap<String, List<Integer>>();
+	        nEvtBeingOrdered = 0;
+		readEvts = new HashSet<Event>();
+		nMsgsRecd = 0;
+
+		String pfx = Util.fileContentToString(FMLogic.EVT_ORDER_PFX_TO_TRY);
+		if((pfx != null) && (!(pfx.trim().equals("")))){
+			String[] evtIds = pfx.split("\\s+");
+			evtOrderPfxToTry = new LinkedList<Integer>();
+			for(String id : evtIds){
+				evtOrderPfxToTry.add(Integer.parseInt(id));
+			}
+		}
+		else if(pfx == null){
+			File f = new File(FMLogic.START_FLAG);
+			if(!f.exists()){
+				FMLogic.NORMAL_EXEC = true;
+				createWipeOutFlag();
+				wakeUpAll();
+			}
+			else{
+				f.delete();
+			}
+		}
+
+		String dep = Util.fileContentToString(FMLogic.EVT_DEP_TO_TRY);
+		if(dep != null){
+			dep = dep.trim();
+			String[] depIds = dep.split("\\s+");
+			depToTry = new Pair<Integer, Integer>(depIds[0], depIds[1]);
+		}
+		else{
+			depToTry = null;
+		}
+
+		evtOrdersAlreadyExp = Util.fileContentToList(FMLogic.EVT_ORDER_HISTORY_FILE);
+	}
+
+
+	public synchronized static void addEvent(Event e){
+		File f = new File(FMLogic.EXP_START_FLAG);
+		if(f.exists()){
+			initBeforeEachExp();
+			f.delete();
+		}
+
+		events.add(e);
+		if(e.isReadEvent()){
+			nMsgsRecd++;
+			readEvts.add(e);
+		}
+	}
+
+	public static void addAndWait(Event e, Object waitObj){
+		if(FMLogic.NORMAL_EXEC){
+			return;
+		}
+		addEvent(e);
+	        synchronized(Reorder.class){
+			objsToWaitOn.put(e, waitObj);
+		}
+		synchronized(waitObj){
+			try{
+				Util.MESSAGE("Making a thread wait here");
+				waitObj.wait();
+			}
+			catch(Exception exp){
+				Util.EXCEPTION("Reorder.addAndWait", exp);
+			}
+		}
+	}
+
+	public void run(){
+		while(true){
+			Util.MESSAGE("In Reorder thread");
+			
+			if(!FMServer.allWaiting()) continue;
+
+			Set<Event> evtsOld = new HashSet<Event>(events);
+			Util.sleep(500);
+			if(!events.equals(evtsOld)) continue;
+
+
+			Util.MESSAGE("All servers waiting. Going to see if I can wake a thread up");
+
+			
+			//TODO: Fix the hack! Hack is for the case when no message has yet been
+			//sent or received by any node in the beginning of the system execution
+			if((nMsgsRecd > 0) && ((readEvts == null) || (readEvts.size() == 0)) 
+					&& FMServer.areQueuesEmpty()){
+			        File f = new File(FMLogic.EXP_RUN_FLAG);
+				if(f.exists()){
+					f.delete();	
+					FMServer.removeWaitStates();
+					nMsgsRecd = 0;
+					wakeUpAll();
+				}		
+				continue;
+			}	
+				
+			Util.MESSAGE("Size of events is " + events.size());
+			Event e = wakeUpDepthFirst();
+			//Event e = wakeUpDet();
+			if(e != null){
+				evtOrder.add(e.hashCode());
+				String nodeId = e.getNodeId();
+				List<Integer> evts = nodeToEvtOrder.get(nodeId);
+				if(evts == null){
+					evts = new LinkedList<Integer>();
+					nodeToEvtOrder.put(nodeId, evts);	
+				}
+				evts.add(e.hashCodeWONode());
+			}
+			else{
+				Util.MESSAGE("Event was null");
+				evtOrder.add(0);
+			}
+		}
+	}
+
+        
+	public static Event wakeUpDepthFirst(){
+		Util.MESSAGE("Waking up a thread using the depth first method");
+		Event e = null;
+	        nEvtBeingOrdered++;
+
+		if((evtOrderPfxToTry == null) || (nEvtBeingOrdered > evtOrderPfxToTry.size())){
+			e = nextEvt(events);   
+			letEvtGo(e, true);	
+			return e;
+		}
+
+		int evt = evtOrderPfxToTry.get(nEvtBeingOrdered - 1);
+		boolean canReproducePfx = false;
+		
+		for(Event et : events){
+			if(et.hashCode() == evt){
+				canReproducePfx = true;
+				e = et;
+				letEvtGo(e, true);					
+					
+				break;
+			}
+		}
+
+
+		if(!canReproducePfx){
+			FMLogic.NORMAL_EXEC = true;
+			createWipeOutFlag();
+			wakeUpAll();
+		}
+
+		return e;
+	}
+
+
+	private static Event anyEvt(Set<Event> evts){
+		ArrayList<Event> al = new ArrayList<Event>(evts);
+		EventComparator ecomp = new EventComparator();
+		Collections.sort(al, ecomp);
+		if(al.size() != 0) return al.get(0);
+		return null;
+	}
+
+
+	private static Event evtUsingHistory(Set<Event> evts){
+		Util.MESSAGE("In evtUsingHistory");
+		String curEvtOrder = "";
+		for(Integer e : evtOrder){
+			curEvtOrder += e + " ";
+		}
+		
+		for(Event e : evts){
+			int eId = e.hashCode();
+			String evtOrderWithEId = curEvtOrder + eId;
+			if((evtOrdersAlreadyExp == null) || !evtOrdersAlreadyExp.contains(evtOrderWithEId)){
+				return e;		
+			}			
+		}
+		
+		FMLogic.NORMAL_EXEC = true;
+		createWipeOutFlag();
+		wakeUpAll();
+		return null;
+	}	
+
+
+
+	
+	private static void letEvtGo(Event e, boolean record){
+		if(e == null) return;
+
+		Object objToNotf = objsToWaitOn.get(e);
+		
+		if(objToNotf != null){
+			events.remove(e);
+			if(e.isReadEvent()){
+				readEvts.remove(e);
+			}
+			String nodeId = e.getNodeId();
+			objsToWaitOn.remove(e);
+
+			if(record){
+				String s = "";
+				String sDetail = "";
+				if(objToNotf != null){
+					s += e.hashCode();
+					sDetail += "==================WOKEN UP EVT================\n";
+					sDetail += e.toString() + "\n";
+					s += " : ";
+					sDetail += " : \n";
+					
+					ArrayList<Event> sortedevts = new ArrayList<Event>(events);
+					EventComparator ecomp = new EventComparator();
+					Collections.sort(sortedevts, ecomp);
+					for(Event evt : sortedevts){
+						s += evt.hashCode();
+						s += " ";
+						sDetail += evt.toString() + "\n";
+					}
+
+					s += "\n";
+					sDetail += "==============================================\n";
+				}
+				Util.MESSAGE("String being written by the Reorder thread to FMLogic.EVTS_WOKEN is " + s);
+				Util.stringToFileContent(s, FMLogic.EVTS_WOKEN, true);
+				Util.stringToFileContent(sDetail, FMLogic.EVTS_WOKEN_DET, true);
+			}
+			
+			synchronized(objToNotf){
+				Util.MESSAGE("Waking up an event here");
+				objToNotf.notify();
+				recordCoverage(e);
+				int sid = Util.getIdValFromNodeId(nodeId);
+				FMServer.serverNoLongerWaiting(sid);
+			}		
+		}
+		else{
+			Util.ERROR("The object on which the thread is waiting to block an event is null");
+		}
+
+	}
+
+
+	public static void recordCoverage(Event e){
+		int hash = e.hashCode();
+		String descStr = e.toString();
+		String fName = FMLogic.COVERAGE_COMPLETE_DIR + "h" + hash + ".txt";
+		File f = new File(fName);
+		
+		try{
+			f.createNewFile();
+			Util.stringToFileContent(descStr, f);
+		}
+		catch(IOException exp){}
+	}
+
+
+	public static Event wakeUpDet(){
+		ArrayList<Event> al = new ArrayList<Event>(events);
+		EventComparator ecomp = new EventComparator();
+		Collections.sort(al, ecomp);
+
+		Util.stringToFileContent("Concurrent events present\n", "/tmp/fi/concurrentEvts", true);
+		for(Event e : al){
+			Util.stringToFileContent(e.toString()+"\n", "/tmp/fi/concurrentEvts", true);
+		}
+		Util.stringToFileContent("---------------------------\n", "/tmp/fi/concurrentEvts", true);
+
+		ArrayList<Event> msgsAl = new ArrayList<Event>(al.size());
+		for(int i = 0; i < al.size(); i++){
+			Event e = al.get(i);
+			if(e.isReadEvent()){
+				msgsAl.add(e);	
+			}
+		}
+
+		ArrayList<Event> evtsToConsider = al;
+		if(!msgsAl.isEmpty()){
+			evtsToConsider = msgsAl;
+		}
+		
+		Event e = null;
+		
+		for(int i = 0; i < evtsToConsider.size(); i++){
+			Event evt = evtsToConsider.get(i);
+			//For fairness of threads (the same timeout event might get woken up again and again otherwise)
+			if(getNumPrevWakeUps(evt) > 2){
+				continue;
+			}
+			else{
+				e = evt;
+				break;
+			}
+		}
+
+		if((e == null) && (evtsToConsider.size() > 0)){
+			e = evtsToConsider.get(0);
+		}
+
+		letEvtGo(e, true);
+		return e;
+	}
+
+	public static int getNumPrevWakeUps(Event e){
+		String nodeId = e.getNodeId();
+		List<Integer> evtOrderForNode = nodeToEvtOrder.get(nodeId);
+		int n = 0;
+		if(evtOrderForNode != null){
+			int eHash = e.hashCodeWONode();
+			int s = evtOrderForNode.size();
+			for(int i = (s-1); i >= 0; i--){
+				int h = evtOrderForNode.get(i);
+				if(h != eHash)
+					break;
+				else
+					n++;
+			}
+		}
+		return n;
+	}
+
+
+	public static void wakeUpAll(){
+		for(Event e : events){
+			letEvtGo(e, false);
+		}
+	}
+
+	public static void createWipeOutFlag(){
+		File f = new File(FMLogic.WIPE_OUT_FLAG);
+		if(!f.exists()){
+			try{
+				f.createNewFile();
+			}
+			catch(Exception e){
+				Util.ERROR("Exception thrown while creating the wipe out flag file");
+			}
+		}
+	}
+
+	/**************************************
+	
+	  private static Event anyEvt(Set<Event> evts){
+		ArrayList<Event> al = new ArrayList<Event>(evts);
+		EventComparator ecomp = new EventComparator();
+		Collections.sort(al, ecomp);
+		if(al.size() != 0) return al.get(0);
+		return null;
+	}
+
+
+	private static Event evtUsingHistory(Set<Event> evts){
+		Util.MESSAGE("In evtUsingHistory");
+		String curEvtOrder = "";
+		for(Integer e : evtOrder){
+			curEvtOrder += e + " ";
+		}
+		
+		for(Event e : evts){
+			int eId = e.hashCode();
+			String evtOrderWithEId = curEvtOrder + eId;
+			if((evtOrdersAlreadyExp == null) || !evtOrdersAlreadyExp.contains(evtOrderWithEId)){
+				return e;		
+			}			
+		}
+		
+		FMLogic.NORMAL_EXEC = true;
+		createWipeOutFlag();
+		wakeUpAll();
+		return null;
+	}
+
+
+	public static Event wakeUpDepthFirst(){
+		Util.MESSAGE("Waking up a thread using the depth first method");
+		Event e = null;
+	        nEvtBeingOrdered++;
+
+		Util.MESSAGE("nEvtBeingOrdered is " + nEvtBeingOrdered);
+		if(evtOrderPfxToTry != null){
+			Util.MESSAGE("evtOrderPfxToTry is " + evtOrderPfxToTry);
+		}
+		else{
+			Util.MESSAGE("evtOrderPfxToTry is null");
+		}
+
+		ArrayList<Event> sortedevts = new ArrayList<Event>(events);
+		EventComparator ecomp = new EventComparator();
+
+		Collections.sort(sortedevts, ecomp);
+		Util.MESSAGE("Events present : ");
+		for(Event ev : sortedevts){
+			Util.MESSAGE("Hash = " + ev.hashCode());
+			Util.MESSAGE(ev.toString());
+		}
+		Util.MESSAGE("==================================================");
+
+
+		if(evtOrderPfxToTry == null){
+			e = anyEvt(events);   
+			letEvtGo(e, true);	
+			return e;
+		}
+
+		if(nEvtBeingOrdered > evtOrderPfxToTry.size()){
+			if(nEvtBeingOrdered > (evtOrderPfxToTry.size() + 1)){
+				e = anyEvt(events);   
+				letEvtGo(e, true);	
+			}
+			else{
+				e = evtUsingHistory(events);
+				letEvtGo(e, true);	
+			}
+		}
+		else{
+			int evt = evtOrderPfxToTry.get(nEvtBeingOrdered - 1);
+			boolean canReproducePfx = false;
+			Util.MESSAGE("Need to wake this event up : " + evt);
+			for(Event et : events){
+				if(et.hashCode() == evt){
+					canReproducePfx = true;
+					e = et;
+					Util.MESSAGE("Waking this event up : " + evt);
+					letEvtGo(e, true);						
+					break;
+				}
+			}
+			if(!canReproducePfx){
+				Util.MESSAGE("Wiping out....cannot reproduce " + evt);
+				FMLogic.NORMAL_EXEC = true;
+				createWipeOutFlag();
+				wakeUpAll();
+			}
+		}
+
+		return e;
+	}
+
+	**************************************/
+}
+

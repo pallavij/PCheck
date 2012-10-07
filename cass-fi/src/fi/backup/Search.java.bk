@@ -1,0 +1,482 @@
+
+package org.fi;
+
+import java.util.*;
+import java.io.*;
+
+public class Search {
+	public static boolean isDepOrdered;
+	public static int kEvtsAllowed = 5;
+	public static int budget = 1;
+	//public static int budget = 2;
+	//public static int budget = 3;
+
+	private static int nOrdersDone = 0;
+	private static boolean detEvtRetr = false;
+	private static int nDetEvtRetr = 0;
+
+	public static void initBeforeEachExp(){
+		isDepOrdered = false;
+		nOrdersDone = 0;
+		detEvtRetr = false;
+		nDetEvtRetr = 0;
+	}
+
+        
+	public static Pair<Event, String> wakeUpDepthFirst(){
+	        synchronized(Reorder.class){
+			Util.MESSAGE("Waking up a thread using the depth first method");
+			Reorder.nEvtBeingOrdered++;
+
+			int nEvtBeingOrdered = Reorder.nEvtBeingOrdered;
+			List<Integer> evtOrderPfxToTry = History.evtOrderPfxToTry;
+			Pair<Integer, Integer> depToTry = History.depToTry;
+			String stateToTry = History.stateToTry;
+			LinkedList<Pair<Event, Object>> events = Reorder.events;
+			String state = AState.getStateOfLeaders();
+			String qstate = AState.getStateOfQueues();
+
+			if(evtOrderPfxToTry == null){
+				return getAnEvt(events, state);
+			}
+
+			int pfxToTrySize = evtOrderPfxToTry.size();
+
+			if(nEvtBeingOrdered == (pfxToTrySize + 1)){
+				if((stateToTry != null) && (!stateToTry.equals(state))){
+					Reorder.wipeOut();
+				}
+
+				int idx1 = findEvt(events, depToTry.fst());
+				if(idx1 < 0){
+					Reorder.wipeOut();
+					return null;
+				}
+
+				int idx2 = findEvt(events, depToTry.snd());
+				if(idx2 < 0){
+					Reorder.wipeOut();
+					return null;
+				}
+		
+				Util.MESSAGE("Putting e1 = " + events.get(idx1).fst().hashCode() + " and e2 = " + 
+						events.get(idx2).fst().hashCode() + " next to each other.");	
+				rearrangeDepEvents(events, events.get(idx1), events.get(idx2), state, true);	
+			}
+			
+			if(nEvtBeingOrdered > pfxToTrySize + 2){
+				if(!detEvtRetr){
+					if(nOrdersDone < budget){
+						Pair<Pair<Event, Object>, Pair<Event, Object>> dep = 
+							getDepEvents(events, state, qstate);
+						if(dep != null){
+							rearrangeDepEvents(events, dep.fst(), dep.snd(), state, true);
+						}
+					}
+				}
+
+				if(!detEvtRetr){
+					Pair<Event, Object> eWObj = getEventWTOConstraints(events);
+					Reorder.letEvtGo(eWObj, true);
+					return (new Pair(eWObj.fst(), state));
+				}
+			}
+		
+			//if((nEvtBeingOrdered > pfxToTrySize) && (nEvtBeingOrdered <= (pfxToTrySize + 2))){
+			if(detEvtRetr){
+				Pair<Event, Object> eWObj = events.getFirst();
+				Reorder.letEvtGo(eWObj, true);
+				nDetEvtRetr++;	
+
+				Event eBeingWokenUp = eWObj.fst();
+				//if((nEvtBeingOrdered == (pfxToTrySize + 2)) && (eBeingWokenUp != null))
+				if((nDetEvtRetr == 2) && (eBeingWokenUp != null)){
+					//synchronized(Reorder.class){ 
+						Reorder.randomnessInQ = true; 
+					//}
+					detEvtRetr = false;
+					nDetEvtRetr = 0;
+				}
+				return (new Pair(eBeingWokenUp, state));
+			}
+		
+			//If I still reach here with nEvtBeingOrdered greater than pfx's size	
+			if(nEvtBeingOrdered > pfxToTrySize){
+				return getAnEvt(events, state);
+			}
+
+			int evt = evtOrderPfxToTry.get(nEvtBeingOrdered - 1);
+			boolean canReproduce = false;
+			Pair<Event, Object> eWObj = null;
+		
+			for(Pair<Event, Object> eobj : events){
+				Event et = eobj.fst();
+				if(et.hashCode() == evt){
+					canReproduce = true;
+					eWObj = eobj;
+					break;
+				}
+			}
+
+			if(canReproduce){
+				Reorder.letEvtGo(eWObj, true);					
+				return (new Pair(eWObj.fst(), state));	
+			}
+
+			Util.MESSAGE("Wiping out --- 5");
+			Reorder.wipeOut();
+			return null;
+	        }	
+	}
+
+
+	private static Pair<Event, String> getAnEvt(List<Pair<Event, Object>> events, String state){
+		Pair<Event, Object> e = getEventWTOConstraints(events);
+		Reorder.letEvtGo(e, true);
+		return (new Pair(e.fst(), state));
+	}
+
+
+	private static int findEvt(List<Pair<Event, Object>> evts, Integer eHash){
+		if(eHash == null)
+			return -1;
+
+		for(int i = 0; i < evts.size(); i++){
+			Pair<Event, Object> eWObj = evts.get(i);
+			Event e = eWObj.fst();
+			if(e.hashCode() == eHash){
+				return i;
+			}	
+		}	
+
+		return -1;
+	}
+
+	public static void rearrangeDepEvents(List<Pair<Event, Object>> events, Pair<Event, Object> e1, 
+			Pair<Event, Object> e2, String state, boolean recordDep){
+		if((e1 == null) || (e2 == null)){
+			return;
+		}
+		
+		events.remove(e2);
+		events.add(0, e2);
+		events.remove(e1);
+		events.add(0, e1);
+
+		nOrdersDone++;
+		Reorder.randomnessInQ = false;
+
+		if(recordDep){
+			int e1H = e1.fst().hashCode();
+			int e2H = e2.fst().hashCode();
+			String dep = e1H + " " + e2H + " [ " + state + " ]\n";
+			Util.stringToFileContent(dep, FMLogic.DEP_TO_TRY_HISTORY, true);
+			History.markDepAsCovered(e1H + " " + e2H, state);
+		}
+
+		detEvtRetr = true;
+
+		Util.MESSAGE("Reordering " + nOrdersDone + "-th time in an exp");
+		
+		return;		
+	}
+
+
+
+	public static Pair<Pair<Event, Object>, Pair<Event, Object>> getDepEvents(List<Pair<Event, Object>> events, 
+			String state, String qstate){
+	
+		List<Pair<Event, Object>> evts = new LinkedList<Pair<Event, Object>>(events);
+		//Util.MESSAGE("evts in getDepEvents = " + evts);
+		
+		while(!evts.isEmpty()){
+			Pair<Event, Object> e1 = getEventWTOConstraints(evts);
+			Event e1Evt = e1.fst();
+			deleteEvts(evts, e1Evt);
+			for(Pair<Event, Object> e2 : evts){
+				Event e2Evt = e2.fst();
+				String e1H = (new Integer(e1Evt.hashCode())).toString();
+				String e2H = (new Integer(e2Evt.hashCode())).toString();
+				String evtOrderStr = History.getStrRep(Reorder.evtOrder);
+				String stateOrderStr = History.getStrRep(Reorder.stateOrder);
+
+				boolean dep = History.areDep(e1H, e2H, state, qstate, e1Evt, e2Evt);
+				if(dep){
+					String n1 = e1Evt.getNodeId();
+					String n2 = e2Evt.getNodeId();
+					boolean doneInPrevExp = History.alreadyDone(evtOrderStr, state, e1H, e2H, n1, n2);
+					
+					List<String> nodes = new LinkedList<String>();
+					nodes.add(n1); nodes.add(n2);
+					boolean doneInThisExp = History.isOrderPresent(evtOrderStr, stateOrderStr, 
+							e1H, e2H, state, nodes, evtOrderStr);
+			
+					Util.MESSAGE("dep being considered is e1 = " + e1H + " e2 = " + e2H + " under state " + state);	
+					//if(doneInPrevExp){
+					//	Util.MESSAGE("Dep already done in prev exp");
+					//}
+
+					//if(doneInThisExp){
+					//	Util.MESSAGE("Dep already done in this exp");
+					//}
+				
+					Util.MESSAGE("doneInPrevExp = " + doneInPrevExp + " doneInThisExp = " + doneInThisExp);
+					
+
+					if(!doneInPrevExp && !doneInThisExp){	
+						return (new Pair(e1, e2));
+					}
+				}
+			}	
+		}
+		return null;
+	}
+
+
+
+	private static void deleteEvts(List<Pair<Event, Object>> events, Event e){
+		Iterator<Pair<Event, Object>> eventsItr = events.iterator();
+		while(eventsItr.hasNext()){
+			Pair<Event, Object> ev = eventsItr.next();
+			if(e.equals(ev.fst())){
+				eventsItr.remove();
+			}
+		}
+	}
+
+
+
+	public static Pair<Event, String> wakeUpRandom(){
+	        synchronized(Reorder.class){
+			List<Pair<Event, Object>> events = new LinkedList<Pair<Event, Object>>(Reorder.events);
+			int idx = Reorder.randomGen.nextInt(events.size());
+			Pair<Event, Object> e = events.get(idx);
+			Reorder.letEvtGo(e, true);
+			
+			String state = AState.getStateOfLeaders();
+			String qstate = AState.getStateOfQueues();
+			
+			return (new Pair(e.fst(), state));
+		}
+	}
+
+
+
+	public static Event wakeUpDet(){
+	        synchronized(Reorder.class){
+			List<Pair<Event, Object>> events = new LinkedList<Pair<Event, Object>>(Reorder.events);
+			//events = new LinkedList<Pair<Event, Object>>(Reorder.events);
+			
+			EventComparator ecomp = new EventComparator();
+			List<Pair<Event, Object>> sortedEvts = (new Pair()).sortByFst(events, ecomp);
+
+			Util.stringToFileContent("Concurrent events present\n", "/tmp/fi/concurrentEvts", true);
+			for(Pair<Event, Object> e : sortedEvts){
+				Util.stringToFileContent(e.fst().toString()+"\n", "/tmp/fi/concurrentEvts", true);
+			}
+			Util.stringToFileContent("---------------------------\n", "/tmp/fi/concurrentEvts", true);
+
+			
+			Pair<Event, Object> e = getEventWTOConstraints(sortedEvts);
+			Reorder.letEvtGo(e, true);
+			return e.fst();
+		}
+	}
+
+
+	
+	public static Pair<Event, String> wakeUpPrioritizedNode(){
+	        synchronized(Reorder.class){
+			List<Pair<Event, Object>> events = new LinkedList<Pair<Event, Object>>(Reorder.events);
+			List<Pair<Event, Object>> filEvts = filterByNode(events, "Node-3");
+			
+			EventComparator ecomp = new EventComparator();
+			List<Pair<Event, Object>> sortedEvts; 
+			Pair<Event, Object> e = null;	
+
+			if(filEvts.size() > 0){
+				sortedEvts = (new Pair()).sortByFst(filEvts, ecomp);
+				e = getEventWORepetition(sortedEvts, false);
+			}
+			
+			if(e == null){
+				sortedEvts = (new Pair()).sortByFst(events, ecomp);
+				e = getEventWORepetition(sortedEvts, true);
+			}
+
+			String state = AState.getStateOfLeaders();
+			Reorder.letEvtGo(e, true);
+			return (new Pair(e.fst(), state));
+		}
+	}
+
+
+	public static List<Pair<Event, Object>> filterByNode(List<Pair<Event, Object>> events, String node){
+		        List<Pair<Event, Object>> filEvts = new LinkedList<Pair<Event, Object>>();
+		        for(Pair<Event, Object> e : events){
+				Event evt = e.fst();
+				String nid = evt.getNodeId();
+				if((nid != null) && (nid.equals(node))){
+					filEvts.add(e);
+				}
+			}	
+			return filEvts;
+	}
+
+
+
+	public static int getNumPrevWakeUps(Pair<Event, Object> eWObj){
+		Map<String, List<Integer>> nodeToEvtOrder = Reorder.nodeToEvtOrder;	
+		
+		Event e = eWObj.fst();
+		String nodeId = e.getNodeId();
+		List<Integer> evtOrderForNode = nodeToEvtOrder.get(nodeId);
+		int n = 0;
+		if(evtOrderForNode != null){
+			int eHash = e.hashCodeWONodeStack();
+			int s = evtOrderForNode.size();
+			for(int i = (s-1); i >= 0; i--){
+				int h = evtOrderForNode.get(i);
+				if(h != eHash)
+					break;
+				else
+					n++;
+			}
+		}
+		return n;
+	}
+
+
+	public static boolean isETypeSameAsLastEvt(Pair<Event, Object> ewobj){
+		if(ewobj == null)
+			return false;
+	
+		List<Event.EType> typeOrder = Reorder.eTypeOrder;
+		int sz = typeOrder.size();
+		if(sz < 5){
+			return false;
+		}
+		Event.EType last1 = typeOrder.get(sz-1);
+		Event.EType last2 = typeOrder.get(sz-2);
+		Event.EType last3 = typeOrder.get(sz-3);
+		Event.EType last4 = typeOrder.get(sz-4);
+
+		Event cur = ewobj.fst();
+		return ((cur.t == last1) && (last1 == last2) && (last2 == last3) && (last3 == last4));	
+			
+	}
+
+
+	public static boolean isPollGoingToWait(Pair<Event, Object> ewobj){
+		if(ewobj == null)
+			return false;
+
+		Event e = ewobj.fst();
+		if(!e.isPollEvent())
+			return false;
+		QueueContext q = e.getQueue();
+		boolean b = FMServer.isEmpty(q);
+		return b;
+	}
+
+
+	public static Pair<Event, Object> getEventWTOConstraints(List<Pair<Event, Object>> events){
+		//LinkedList<Pair<Event, Object>> msgsEvts = new LinkedList<Pair<Event, Object>>();
+		//for(int i = 0; i < events.size(); i++){
+		//	Pair<Event, Object> e = events.get(i);
+		//	if((e.fst()).isReadEvent()){
+		//		msgsEvts.add(e);	
+		//	}
+		//}
+
+		ArrayList<Pair<Event, Object>> evtsToConsider = new ArrayList<Pair<Event, Object>>(events);
+		PairComparator pc = new PairComparator();
+		Collections.sort(evtsToConsider, pc);
+
+
+		//if(!msgsEvts.isEmpty()){
+		//	evtsToConsider = msgsEvts;
+		//}
+		
+		Pair<Event, Object> e = null;
+		
+		for(int i = 0; i < evtsToConsider.size(); i++){
+			Pair<Event, Object> evt = evtsToConsider.get(i);
+			//For fairness of threads (the same timeout event might get woken up again and again otherwise)
+			if(isPollGoingToWait(evt) || isETypeSameAsLastEvt(evt) || (getNumPrevWakeUps(evt) > kEvtsAllowed)){
+				continue;
+			}
+			else{
+				e = evt;
+				break;
+			}
+		}
+
+		if((e == null) && (evtsToConsider.size() > 0)){
+			e = evtsToConsider.get(0);
+		}
+
+		return e;
+	}
+
+
+	public static int getNumPrevEvts(Event e){
+		List<Integer> evtOrder = Reorder.evtOrder;
+		List<Event.EType> eTypeOrder = Reorder.eTypeOrder;
+		List<String> eNodeOrder = Reorder.eNodeOrder;
+		
+		int sz = evtOrder.size();
+		
+		int num = 0;
+		int eHash = e.hashCode();
+		Event.EType eType = e.t;
+		boolean checkType = ((eType == Event.EType.POLL) || (eType == Event.EType.SLEEP));
+		String eNode = e.getNodeId();
+	
+			
+
+		for(int i = (sz-1); i >= 0; i--){
+			int evt = evtOrder.get(i);
+			Event.EType evtType = eTypeOrder.get(i);
+			String evtNode = eNodeOrder.get(i);
+
+			if(((checkType && (evtType == eType)) || (!checkType && (evt == eHash))) && (evtNode.equals(eNode))){
+				num++;
+			}
+			else{
+				break;
+			}
+		}
+
+		return num;
+	}
+
+
+	public static Pair<Event, Object> getEventWORepetition(List<Pair<Event, Object>> events, boolean retDefault){
+		Pair<Event, Object> evt = null;
+		
+		for(Pair<Event, Object> e : events){
+			Event ev = e.fst();
+			
+			if(getNumPrevEvts(ev) > 3){
+				continue;
+			}
+			else if(ev.isPollEvent()){
+				if(isPollGoingToWait(e)){
+					continue;
+				}
+			}
+			
+			evt = e;
+			break;
+		}
+
+		if((evt == null) && !events.isEmpty() && retDefault){
+			evt = events.get(0);	
+		}
+
+		return evt;
+	}
+
+}
+

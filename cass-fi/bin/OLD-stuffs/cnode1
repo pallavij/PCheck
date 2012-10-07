@@ -1,0 +1,8 @@
+#!/bin/sh
+
+
+
+CASSANDRA_INCLUDE=/Users/haryadi/cassandra-fi/bin/cnode1.in.sh
+export CASSANDRA_INCLUDE
+cd ~/cassandra-fi
+bin/cassandra -p 1

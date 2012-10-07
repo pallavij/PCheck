@@ -1,0 +1,215 @@
+/**
+ * Copyright (c) 2012,
+ * Thanh Do  <thanhdo@cs.wisc.edu>
+ * Haryadi S. Gunawi  <haryadi@cs.uchicago.edu>
+ * Pallavi Joshi  <pallavi@cs.berkeley.edu>
+ * All rights reserved.
+ * <p/>
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ * <p/>
+ * 1. Redistributions of source code must retain the above copyright
+ * notice, this list of conditions and the following disclaimer.
+ * <p/>
+ * 2. Redistributions in binary form must reproduce the above copyright
+ * notice, this list of conditions and the following disclaimer in the
+ * documentation and/or other materials provided with the distribution.
+ * <p/>
+ * 3. The names of the contributors may not be used to endorse or promote
+ * products derived from this software without specific prior written
+ * permission.
+ * <p/>
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+ * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+program model;
+
+
+
+
+// ####################################################################
+// ####################################################################
+// ####                                                            ####
+// ####                 GENERAL                                    ####
+// ####                                                            ####
+// ####################################################################
+// ####################################################################
+
+// reset <Random>
+define(reset, {Integer});
+
+// server_storage <PathServer, StorageFile, Status>
+// user_state <PathUser>
+// storage_file <StorageFile>
+
+delete dead_nodes(A, B)        :- reset(_), dead_nodes(A, B);
+delete user_state(A)           :- reset(_), user_state(A);
+delete storage_file(A)         :- reset(_), storage_file(A);
+delete server_storage(A, B, C) :- reset(_), server_storage(A, B, C);
+
+  
+
+
+
+
+
+
+
+// ####################################################################
+// ####################################################################
+// ####                                                            ####
+// ####                 NETWORK MODEL                              ####
+// ####                                                            ####
+// ####################################################################
+// ####################################################################
+
+// *************************************************** REAL TABLE: 
+
+// dead_nodes <NodeId, ObservedBy>
+define(dead_nodes, keys(0,1), {String, String});
+
+
+// *************************************************** EVENT TABLE:
+
+
+
+// failed_connection <NodeId, ObservedBy>
+define(failed_connection, {String, String});
+
+// returned_node <NodeId>
+define(returned_node, {String});
+
+
+// *************************************************** EVENTS:
+
+// If someone sees a failed connection to NodeId, and FAAS
+// already killed that node, then mark dead_nodes NodeId
+// seen by the new ObservedBy (e.g. "Client")
+public
+  dead_nodes(NodeId, ObservedBy) :-
+  failed_connection(NodeId, ObservedBy),
+  dead_nodes(NodeId, "FAAS");
+
+
+
+
+
+
+// ####################################################################
+// ####################################################################
+// ####                                                            ####
+// ####                 STORAGE MODEL                              ####
+// ####                                                            ####
+// ####################################################################
+// ####################################################################
+
+
+// *************************************************** REAL TABLE: 
+
+// server_storage <PathServer, StorageFile, Status>
+define(server_storage, keys(0,1), {String, String, String}); 
+
+// user_state <PathUser>
+define(user_state, keys(0), {String});
+
+// storage_file <StorageFile>
+define(storage_file, keys(0), {String});
+
+
+
+// *************************************************** EVENT TABLE:
+
+// XXX: I don't need event that directly changes the table
+
+// add_path_server <PathServer, StorageFile, Status>
+define(add_path_server, {String, String, String}); 
+
+// truncate_storage_file <StorageFile>
+define(truncate_storage_file, {String});
+
+// add_path_user <PathUser>
+define(add_path_user, {String});
+
+// add_storage_file <StorageFile>
+define(add_storage_file, {String});
+
+// rename_storage_file <Source, Dest>
+define(rename_storage_file, {String, String});
+
+
+// *************************************************** EVENTS:
+
+// EVENT: add path to the server state
+public
+server_storage(PathServer, StorageFile, Status) :- 
+  add_path_server(PathServer, StorageFile, Status);
+
+// EVENT: add path to user state
+public
+user_state(PathUser) :- 
+  add_path_user(PathUser);
+
+// EVENT: add storage file to show it exists
+public
+storage_file(StorageFile) :-
+  add_storage_file(StorageFile);
+
+// EVENT: truncate storage file
+public
+delete
+  server_storage(Path, StorageFile, Status) :-
+  truncate_storage_file(StorageFile),
+  server_storage(Path, StorageFile, Status);
+
+// EVENT: rename storage file
+// couple of things must happen here: (1, 2, 3)
+
+// 1) first all metadata in server_storage that stored in
+//    the source file needs to be moved to target file
+public
+server_storage(Path, DestFile, Status) :-
+  rename_storage_file(SourceFile, DestFile),
+  server_storage(Path, SourceFile, Status);
+
+// 2) since metadata could be replicated in many storage files,
+//    the keys for server_storage includes the storage files,
+//    and hence the move in (1) does not delete the Source File
+//    so let's delete explicitly
+public
+delete
+  server_storage(Path, SourceFile, Status) :-
+  rename_storage_file(SourceFile, _),
+  server_storage(Path, SourceFile, Status);
+
+// 2b) then clean up old entries from the destination file
+public
+delete
+  server_storage(Path, DestFile, Status) :-
+  rename_storage_file( _, DestFile),
+  server_storage(Path, DestFile, Status);
+
+
+// 3) add dest storage file to the storage_file table
+public
+storage_file(DestFile) :-
+  rename_storage_file(_, DestFile);
+
+// 4) delete source storage file from the storage_file table
+public
+delete
+  storage_file(SourceFile) :-
+  rename_storage_file(SourceFile, _),
+  storage_file(SourceFile);
+
+

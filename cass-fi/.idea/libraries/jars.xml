@@ -1,0 +1,20 @@
+<component name="libraryTable">
+  <library name="jars">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/build/lib/jars/asm-3.2.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/lib/jars/paranamer-generator-2.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/lib/jars/apache-rat-0.6.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/lib/jars/ant-1.6.5.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/lib/jars/qdox-1.10.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/lib/jars/apache-rat-tasks-0.6.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/lib/jars/commons-collections-3.2.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/lib/jars/junit-4.6.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/lib/jars/apache-rat-core-0.6.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/lib/jars/commons-lang-2.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/lib/jars/paranamer-ant-2.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/lib/jars/commons-cli-1.1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

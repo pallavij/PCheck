@@ -1,0 +1,18 @@
+#!/bin/sh
+
+
+if [ $# != 1 ]; then
+    echo "Usage: cnode <nodeId>"
+    exit
+fi
+
+
+export NODE_ID=$1
+
+CASSFI="/Users/pallavi/Research/faultInjection/cass-fi"
+
+export CASSANDRA_INCLUDE="$CASSFI/bin/cnode.in.sh"
+#. $CASSANDRA_INCLUDE
+
+cd $CASSFI
+bin/cassandra -p $NODE_ID

@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="build">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/build/ivy-2.1.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/apache-cassandra-0.6.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/woven-rt.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

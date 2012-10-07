@@ -1,0 +1,15 @@
+#!/bin/sh
+
+
+
+CASSANDRA_INCLUDE=/Users/pallavi/Research/faultInjection/cass-fi/bin/cassandra.in.sh
+. $CASSANDRA_INCLUDE
+#echo "CLASSPATH = $CLASSPATH"
+
+
+cd /Users/pallavi/Research/faultInjection/cass-fi/
+
+
+JAVA=`which java`
+exec $JAVA -cp $CLASSPATH org.fi.FMDriver > /tmp/fi/logs/fi.out  & 
+

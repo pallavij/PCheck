@@ -1,0 +1,24 @@
+#!/bin/sh
+
+if [ $# != 1 ]; then
+	echo "Usage: allCnode <num of nodes to run>"
+	exit
+fi
+ 
+numNodes=$1
+
+CASSFI=/Users/pallavi/Research/faultInjection/cass-fi
+cd $CASSFI
+
+i=0
+while [ $i -lt $numNodes ]
+do
+	if [ "$i" -eq "0" ]
+	then
+		bin/cassandra -p $i &
+	else
+		bin/cnode $i &
+	fi
+	((i=i+1))
+done
+

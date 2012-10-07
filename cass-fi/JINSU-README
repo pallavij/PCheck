@@ -1,0 +1,18 @@
+go to cassandra base dir
+
+'ant firt'
+
+'ant'
+
+'ant fi'
+
+if you are using mac, run bin/extra.sh so you can get alias ips up
+'bin/extra.sh'
+
+'make' 
+-> make sure that all nodes are running by checking ps -e | grep java
+
+go to workload driver
+'make kill'
+'ant'
+

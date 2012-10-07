@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="sources">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/build/lib/sources/junit-4.6.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/lib/sources/paranamer-ant-2.1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

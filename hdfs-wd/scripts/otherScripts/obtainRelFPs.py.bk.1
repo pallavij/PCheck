@@ -1,0 +1,315 @@
+#!/usr/bin/python
+import os
+import sys
+
+fPtsDirPath = "/tmp/fi/coverageComplete"
+fPtsDepFile = "/tmp/fi/coverageInfo"
+rFPtsDepFile = "/tmp/fi/coverageInfoRHashes"
+relHdfsPath = "../hdfs-trunk/"
+relHdfsFPtsPath = "/tmp/fi/failPts/"
+genFPtsPath = "failPts/"
+rHashesFile = "/tmp/fi/failPts/rHashIds"
+subqFPtsFile = "/tmp/fi/failPts/subqFPts"
+
+class Util:
+	#set ssh keys so that one can ssh to localhost w/o requiring a password
+	def setSSHKeys (homeDir):
+		#os.system('chmod 700 ' + homeDir + '/.ssh')
+		#os.system('touch ' + homeDir + '/.ssh/authorized_keys')
+		#os.system('chmod 600 ' + homeDir + '/.ssh/authorized_keys')
+		os.system('rm ' + homeDir + '/.ssh/id_dsa')
+		os.system('rm ' + homeDir + '/.ssh/authorized_keys')
+		os.system("ssh-keygen -t dsa -P '' -f " + homeDir + "/.ssh/id_dsa")
+		os.system("cat " + homeDir + "/.ssh/id_dsa.pub >> " + homeDir + "/.ssh/authorized_keys")
+
+	#write down the names of all files (each file containing info about a failure point) in a directory
+	def writeFailPtsToFile (fileName):
+		f = open(fileName, 'w')
+		for failPt in os.listdir(fPtsDirPath):
+			f.write(failPt[1:-4]+'\n')
+		f.close()
+
+	def run(maxFsn, enableFailureExp, genFile):
+		os.system('./scripts/killjava.py')
+		os.system('ant -DMAX_FSN=' + str(maxFsn) + ' ' + '-DenableFailure=' + str(enableFailureExp)  + ' -DenableCoverage=true')
+		writeFailPtsToFile(genFile)
+		
+	def rmFailPtsFiles():
+		os.system('rm -rf ' + genFPtsPath + '*')
+
+	def rmDepFiles():
+		os.system('rm -f ' + fPtsDepFile)
+		os.system('rm -f ' + rFPtsDepFile)
+
+	def mvFPtsToConsiderFiles(fsn):	
+		os.system('mv fPtsToConsider' + str(fsn+2) + '.txt ' + relHdfsFPtsPath)
+		os.system('mv rFPtsToConsider' + str(fsn+2) + '.txt ' + relHdfsFPtsPath)
+
+class GenFailPtsToEx:		
+	#generate the files that have hashes and reduced-hashes (hashes w/o datanode ids) of failures that need 
+	#to be explored (based on the new failure points that come up as a result of previous failure injections)
+	#TODO: think about what fPtsFile would have to be
+	def generateFailPtsToExplore (fPtsFile, fDepsFile, rFDepsFile, maxFsn, indep):
+		fPts = open(fPtsFile, 'r')
+		fDeps = open(fDepsFile, 'r')
+		rFDeps = open(rFDepsFile, 'r')
+		fPtsPrevFsn = fPts.readlines()
+		fDepsCurFsn = fDeps.readlines()
+		rFDepsCurFsn = rFDeps.readlines()
+		fPts.close()
+		fDeps.close()
+		rFDeps.close()
+
+		fDepsToConsider = []
+		rFDepsToConsider = []
+		for i in range(len(fDepsCurFsn)):
+			fDep = fDepsCurFsn[i]
+			rFDep = rFDepsCurFsn[i]
+
+			fPtsInfDep = fDep.split()
+			lastfPt = fPtsInfDep[-1]
+			isIndepFail = ((lastfPt + '\n') in fPtsPrevFsn)
+			if ((indep and isIndepFail) or ((not indep) and (not isIndepFail))):
+				fDepsToConsider.append(fDep)
+				rFDepsToConsider.append(rFDep)
+
+		fDepsToConsiderFile = open('fPtsToConsider' + str(maxFsn) + '.txt', 'w')
+		fDepsToConsiderFile.writelines(fDepsToConsider)
+		
+		rFDepsToConsiderFile = open('rFPtsToConsider' + str(maxFsn) + '.txt', 'w')
+		rFDepsToConsiderFile.writelines(rFDepsToConsider)
+
+class GenEqvCls:
+	#find equivalence classes of sequences of failure points based on the set of subsequent failure points that 
+	#each sequence of failure points gives rise to
+	def findEquivalentFailPts(depsFile, outfile):
+		fDeps = open(depsFile, 'r')
+		deps = fDeps.readlines()
+		fDeps.close()
+
+		fPtToSubqFPtsMap = {}
+
+		for dep in deps:
+			fsnsInDep = dep.split()
+			first = " ".join(fsnsInDep[0:-1])
+			second = fsnsInDep[-1]
+			if (first in fPtToSubqFPtsMap.keys()):
+				subqFPts = fPtToSubqFPtsMap[first]
+				subqFPts.add(second)
+			else:
+				fPtToSubqFPtsMap[first] = set([second])
+		recordSubqFsns(fPtToSubqFPtsMap)	
+		computeEqvClasses(fPtToSubqFPtsMap, outfile)	
+	
+	#find equivalence classes of sequences of failure points based on the set of subsequent failure points that 
+	#each sequence of failure points gives rise to (we ignore datanode ids in subsequent failure points)
+	def findEquivalentFailPtsWODN(depsFile, rDepsFile, outfile):
+		fDeps = open(depsFile, 'r')
+		deps = fDeps.readlines()
+		fDeps.close()
+
+		rFDeps = open(rDepsFile, 'r')
+		rDeps = rFDeps.readlines()
+		rFDeps.close()
+		
+		fPtToSubqFPtsMap = {}
+
+		count = 0
+		for dep in deps:
+			fsnsInDep = dep.split()
+			rFsnsInDep = rDeps[count].split()
+			first = " ".join(fsnsInDep[0:-1])
+			second = rFsnsInDep[-1]
+			if (first in fPtToSubqFPtsMap.keys()):
+				subqFPts = fPtToSubqFPtsMap[first]
+				subqFPts.add(second)
+			else:
+				fPtToSubqFPtsMap[first] = set([second])
+			count = count + 1
+		computeEqvClasses(fPtToSubqFPtsMap, outfile)	
+
+	#find equivalence classes of sequences of failure points based on the set of subsequent failure points that 
+	#each sequence of failure points gives rise to (we ignore datanode ids in subsequent failure points)
+	def findEquivalentFailPtsWODNPatch(depsFile, rDepsFile, rHashesFile, outfile):
+		fDeps = open(depsFile, 'r')
+		deps = fDeps.readlines()
+		fDeps.close()
+
+		fRDeps = open(rDepsFile, 'r')
+		rDeps = fRDeps.readlines()
+		fRDeps.close()
+
+		fRHashes = open(rHashesFile, 'r')
+		rHashes = fRHashes.readlines()
+		fRHashes.close()
+
+		cHashesEqvCls = {}
+
+		for rHash in rHashes:
+			rHashParts = rHash.split(":")
+			cHashId = rHashParts[0]
+			rHashId = rHashParts[1]
+			nodeId = rHashParts[2]
+			nodeId = nodeId.rstrip("\n")
+
+			if(rHashId in cHashesEqvCls.keys()):
+				rHashIdEqvCls = cHashesEqvCls[rHashId]
+				rHashIdEqvCls.add((cHashId, nodeId))
+			else:
+				cHashesEqvCls[rHashId] = set([(cHashId, nodeId)])
+
+		subqFsns = {}
+		
+		for rHashId in cHashesEqvCls.keys():
+			rHIdEqvCls = cHashesEqvCls[rHashId]
+			minNId = -1
+			cIdForMinNId = ""
+			for (cHId, nId) in rHIdEqvCls:
+				curNId = int(nId.lstrip("DataNode-"))
+				if((minNId < 0) or (curNId < minNId)):
+					minNId = curNId
+					cIdForMinNId = cHId
+			subFsns = getSubQFsns(cIdForMinNId, deps, rDeps)		
+			subqFsns[rHashId] = subFsns
+
+		rHashesEqvCls = computeEqvClasses(subqFsns, "")
+
+		fEqvCs = open(outfile, 'w')
+		for rHashesEqvCl in rHashesEqvCls:
+			cHashesEqvCl = ""
+			for rHashId in rHashesEqvCl:
+				cHIds = cHashesEqvCls[rHashId]
+				for (cHId,nId) in cHIds:
+					cHashesEqvCl += cHId + ","
+			cHashesEqvCl = cHashesEqvCl.rstrip(",")		
+			fEqvCs.write(cHashesEqvCl + "\n")
+		fEqvCs.close()
+
+	#record the subsequent fsns that you see after a series of fault injections
+	#TODO: also record the fsns that you would see without any fault injection
+	def recordSubqFsns(fPtToSubqFPtsMap):
+		subqFile = open(subqFPtsFile, 'a')
+		for fPt in fPtToSubqFPtsMap.keys():
+			fPtSubqFPts = fPtToSubqFPtsMap[fPt]
+			subqFPtsStr = " ".join(list(fPtSubqFPts))
+			subqFile.write(fPt+":"+subqFPtsStr)
+		subqFile.close()
+
+	def readSubqFPts():
+		fPtToSubqFPtsMap = {}
+		subqFile = open(subqFPtsFile, 'r')
+		subqFPtsLines = subqFPtsFile.readlines()
+		for subqFPtsLine in subqFPtsLines:
+			fPtAndSubqFPts = subqFPtsLine.split(":")
+			fPt = fPtAndSubqFPts[0]
+			subqFPts = fPtAndSubqFPts[1]
+			fPtToSubqFPtsMap[fPt] = set(subqFPts.split(" "))
+		subqFile.close()
+		return fPtToSubqFPtsMap
+
+	#TODO:implement this
+	def diffSubqFPts():
+
+	def getSubQFsns(cId, deps, rDeps):
+		subQFsns = set([])
+		count = 0
+		for dep in deps:
+			depParts = dep.split()
+			if(depParts[0] == cId):
+				rDep = rDeps[count]
+				rDepParts = rDep.split()
+				subQFsns.add(rDepParts[1].rstrip("\n"))
+			count = count + 1
+		return subQFsns		
+
+	def computeEqvClasses(fPtToSubqFPtsMap, outfile):
+		subqFPtsMap = readSubqFPts()
+
+		fPtToSubqFPtsToConsiderMap = {}
+
+		listOfSubqFPts = []
+		for k in fPtToSubqFPtsMap.keys():
+			subqFPts = fPtToSubqFPtsMap[k]
+			subqFPtsToConsider = diffSubqFPts(subqFPts)
+			fPtToSubqFPtsToConsiderMap[k] = subqFPtsToConsider
+			if(subqFPtsToConsider not in listOfSubqFPts):
+				listOfSubqFPts.append(subqFPtsToConsider)
+		
+		eqvClasses = []
+		for i in range(len(listOfSubqFPts)):
+			eqvClasses.append(set([]))
+		for k in fPtToSubqFPtsToConsiderMap.keys():
+			subqFPtsToConsider = fPtToSubqFPtsMapToConsider[k]
+			ind = listOfSubqFPts.index(subqFPtsToConsider)
+			eqvClasses[ind].add(k)
+
+		if(outfile != ""):
+			fEqvCs = open(outfile, 'w')
+			for eqvClass in eqvClasses:
+				fEqvCs.write(",".join(eqvClass) + "\n")
+			fEqvCs.close()
+		else:
+			return eqvClasses
+
+		
+def runExp():
+	if len(sys.argv) < 2:
+		print('Correct usage: python obtainRelFailurePoints.py <No. of failures in an execution>')
+		sys.exit(0)
+
+	maxFsn = int(sys.argv[1])	
+
+	homeDir = os.getenv('HOME')
+
+	if (not os.path.exists(genFPtsPath)):
+		os.makedirs(genFPtsPath)
+
+	if (not os.path.exists(relHdfsFPtsPath)):
+		os.makedirs(relHdfsFPtsPath)
+
+	rmFailPtsFiles()
+
+	for fsn in range(maxFsn - 1):
+		maxFsn1 = fsn
+		enableFailureExp1 = True
+		if (fsn == 0):
+			maxFsn1 = 1
+			enableFailureExp1 = False
+		
+		setSSHKeys(homeDir)
+
+		genFile1 = genFPtsPath + "failPts" + str(fsn) + ".txt"
+		genFile2 = genFPtsPath + "failPts" + str(fsn+1) + ".txt"
+
+		if(not os.path.exists(genFile1)):
+			run(maxFsn1, enableFailureExp1, genFile1)
+		
+		rmDepFiles()
+		run(fsn+1, True, genFile2)
+		generateFailPtsToExplore(genFile1, fPtsDepFile, rFPtsDepFile, fsn+2, True)
+		mvFPtsToConsiderFiles(fsn)
+
+		eqvClsFileName = "eqvClasses" + str(fsn+2)
+		findEquivalentFailPts(fPtsDepFile, eqvClsFileName)
+		os.system('mv ' + eqvClsFileName + ' ' + relHdfsFPtsPath)
+	
+
+	os.system('./scripts/killjava.py')
+	#os.system('ant -DMAX_FSN=' + str(maxFsn) + ' ' + '-DenableFailure=true -DenableCoverage=true')
+
+#runExp()	
+
+fsn = 0
+
+genFile1 = genFPtsPath + "failPts" + str(0) + ".txt"
+genFile2 = genFPtsPath + "failPts" + str(fsn+1) + ".txt"
+
+writeFailPtsToFile(genFile2)
+
+generateFailPtsToExplore(genFile1, fPtsDepFile, rFPtsDepFile, fsn+2, False)
+mvFPtsToConsiderFiles(fsn)
+
+eqvClsFileName = "eqvClasses" + str(fsn+2)
+#findEquivalentFailPtsWODNPatch(fPtsDepFile, rFPtsDepFile, rHashesFile, eqvClsFileName)
+findEquivalentFailPts(fPtsDepFile, eqvClsFileName)
+os.system('mv ' + eqvClsFileName + ' ' + relHdfsFPtsPath)

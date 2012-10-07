@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+<!-- Put site-specific property overrides in this file. -->
+
+<configuration>
+
+  <!-- haryadi: datanode addresses, and storage directories -->
+
+  <property><name>slave.host.name</name>
+    <value>127.0.0.11</value></property>
+
+  <property><name>dfs.datanode.address</name>
+    <value>0.0.0.0:50011</value></property>
+
+  <property><name>dfs.datanode.ipc.address</name>
+    <value>0.0.0.0:50021</value></property>
+
+  <property><name>dfs.http.address</name>
+    <value>0.0.0.0:50081</value></property>
+
+  <property><name>dfs.datanode.http.address</name>
+    <value>0.0.0.0:50071</value></property>
+
+  <property><name>dfs.secondary.http.address</name>
+    <value>0.0.0.0:50091</value></property>
+
+  <property><name>dfs.data.dir</name>
+    <value>/tmp/fi/hadoop-${user.name}/dfs/data1</value></property>
+
+  <property><name>dfs.heartbeat.interval</name>
+    <value>1</value></property>
+
+
+
+</configuration>

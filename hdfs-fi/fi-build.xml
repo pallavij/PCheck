@@ -1,0 +1,354 @@
+
+
+<project name="Hadoop With FI" default="compile-fi">
+
+  <!-- <import file="build.xml"/> -->
+
+  <target name="compile-fi" depends="compile"/>
+
+
+  <!-- =================================================================
+
+       Main things:
+
+       - fibase : compile src/fi/base/*
+       - firt   : weave src/fi/base* to rt.jar/classes.jar
+
+
+
+
+       - fijav  : just quickly compile src/fi/*.java
+       - fiaj   : just quickly compile src/fi/*.aj to see errors/warnings
+
+       ================================================================= -->
+
+
+  <!-- =================================================================
+       FI properties (please modify accordingly, my setup is for MAC)
+       ================================================================= -->
+
+  <!-- This is a possible setup for MAC -->
+
+     <property name="java.classes.dir" location="/System/Library/Frameworks/JavaVM.framework/Versions/CurrentJDK/Classes"/>
+     <property name="javasdk.file" location="${java.classes.dir}/classes.jar"/>
+     <property name="jsse.file" location="${java.classes.dir}/jsse.jar"/>
+     <property name="jce.file"  location="${java.classes.dir}/jce.jar"/>  
+     <property name="antjar.file" location="/usr/share/ant/lib/ant.jar"/>
+
+  <!-- This is a possible setup for Linux -->
+  <!--
+  <property name="java.classes.dir" location="/usr/lib/jvm/java-6-sun/jre/lib"/>         
+  <property name="javasdk.file" location="${java.classes.dir}/rt.jar"/>                  
+  <property name="jsse.file" location="${java.classes.dir}/jsse.jar"/>                   
+  <property name="jce.file"  location="${java.classes.dir}/jce.jar"/>                    
+  <property name="antjar.file" location="/usr/share/ant/lib/ant.jar"/>                   
+-->
+
+  
+  <!-- =================================================================
+       No need to be modified
+       ================================================================= -->
+  <property name="fi.lib.dir" location="${basedir}/lib/fi"/>
+  <property name="jollib" location="${fi.lib.dir}/jol"/>
+  <property name="rpclib" location="${fi.lib.dir}/xmlrpc"/>
+  <property name="fi.src.dir" value="${src.dir}/fi"/>
+
+
+  <path id="weave.class.path">
+    <pathelement location="build/woven-rt.jar"/>
+    <pathelement location="${jce.file}"/>
+    <pathelement location="${jsse.file}"/>
+    <pathelement location="${antjar.file}"/>
+    <pathelement location="${jollib}/jol.jar"/>
+    <pathelement location="dist/olg.jar"/>
+    <!-- <fileset dir="${rpclib}" includes="*.jar"/> -->
+    <pathelement location="${rpclib}/xmlrpc-server-3.1.3.jar"/>
+    <pathelement location="${rpclib}/xmlrpc-client-3.1.3.jar"/>
+    <pathelement location="${rpclib}/xmlrpc-common-3.1.3.jar"/>
+    <pathelement location="${rpclib}/ws-commons-util-1.0.2.jar"/>
+    <pathelement location="${rpclib}/commons-logging-1.1.jar"/>
+  </path>
+
+
+
+  <!-- =================================================================
+       compile src/fi and weave to core and hdfs classes
+       ================================================================= -->
+  <target name="fi" depends="ficore, fihdfs"/>
+
+
+
+  <!-- =================================================================
+       fihdfs: we try not to weave all hdfs classes, because it is slow,
+       so, we just pick classes that we deal with failures
+       ================================================================= -->
+  <target name="fihdfs" depends="compile-hdfs-classes">
+    
+    <taskdef resource="org/aspectj/tools/ant/taskdefs/aspectjTaskdefs.properties">
+      <classpath>
+	<fileset dir="${lib.dir}" includes="aspect*.jar"/>
+      </classpath>
+    </taskdef>
+
+    <echo message="Start FI-HDFS ..."/>
+
+    <!--                                                                                 
+         org/apache/hadoop/**/*.java,                                                    
+         org/apache/hadoop/server/common/*.java,                                         
+         org/apache/hadoop/server/namenode/*.java,                                       
+         DFSClient.java : a must for frogHooks (protocol-related)                        
+         org/apache/hadoop/hdfs/server/datanode/*.java,                                  
+                                                                                         
+                                                                                         
+         DATANODE FAILURES:                                                              
+         org/apache/hadoop/hdfs/server/datanode/*.java,                                  
+                                                                                         
+         NAMENODE FAILURES:                                                              
+         org/apache/hadoop/hdfs/server/namenode/*.java,                                  
+                                                                                         
+         MUST LIST:                                                                      
+         DatanodeInfo.java : wrappers to read/write protocol headers                     
+      -->
+    <iajc encoding="${build.encoding}"
+          srcdir="${hdfs.src.dir};${fi.src.dir}"
+          includes="org/apache/hadoop/hdfs/**/*.java,
+                    *.aj, *.java,                                                        
+                    "
+          destDir="${build.classes}"
+          debug="${javac.debug}"
+          target="${javac.version}"
+          source="${javac.version}"
+          deprecation="${javac.deprecation}"
+          classpathref="weave.class.path"
+          bootclasspathRef="weave.class.path">
+      <classpath refid="classpath"/>
+    </iajc>
+
+  </target>
+
+
+  <!-- =================================================================
+       ficore: we try not to weave all core classes, because it is slow,
+       so, we just pick classes that perform I/Os
+       ================================================================= -->
+  <target name="ficore" depends="compile-core-classes">
+
+
+    <taskdef resource="org/aspectj/tools/ant/taskdefs/aspectjTaskdefs.properties">
+      <classpath>
+	<fileset dir="${lib.dir}" includes="aspect*.jar"/>
+      </classpath>
+    </taskdef>
+
+    <echo message="Start FI-CORE ..."/>
+
+    <!--
+	fs/RawLocalFileSystem.java : read local file
+
+        io/Text.java          : NetIO DataInputStream wrapper (e.g readString())
+        io/WritableUtils.java : NetIO DataInputStream wrapper (e.g readByte())
+	io/IOUtils.java       : Lots of wrapper for input/output stream used by HDFS
+                                (ex: IOUtils.readFully(InputStream in, ...))
+
+        net/SocketOutputStream.java  : transferToFully ..
+        net/NetUtils.java            : important because of all network setup utility
+	net/SocketIOWithTimeout.java : ???
+
+	util/DataChecksum.java : wrapper for checkum IO
+
+	All:
+        org/apache/hadoop/io/*.java,  // for EditLog
+        org/apache/hadoop/fs/*.java,
+	org/apache/hadoop/net/*.java,
+	org/apache/hadoop/ipc/*.java,
+
+      -->
+    <iajc  encoding="${build.encoding}"
+           srcdir="${core.src.dir};${fi.src.dir}"
+           includes="org/apache/hadoop/io/*.java,
+		     org/apache/hadoop/fs/*.java,
+		     org/apache/hadoop/net/*.java,
+		     org/apache/hadoop/ipc/*.java,		     
+		     org/apache/hadoop/util/DataChecksum.java,
+                     *.aj,
+                     *.java"
+           destdir="${build.classes}"
+           debug="${javac.debug}"
+           target="${javac.version}"
+           source="${javac.version}"
+           deprecation="${javac.deprecation}"
+           classpathref="weave.class.path"
+           bootclasspathRef="weave.class.path">
+      <classpath refid="classpath"/>
+    </iajc>
+
+  </target>
+
+
+
+
+  <!-- =================================================================
+       fioneclass:
+       specify a dir/a file that you want to weave
+       ================================================================= -->
+  <target name="fioneclass" depends="init">
+
+    <taskdef resource="org/aspectj/tools/ant/taskdefs/aspectjTaskdefs.properties">
+      <classpath>
+	<fileset dir="${lib.dir}" includes="aspect*.jar"/>
+      </classpath>
+    </taskdef>
+
+    <echo message="Start FI-ONE CLASS ..."/>
+
+    <iajc  encoding="${build.encoding}"
+           srcdir="${core.src.dir};${fi.src.dir};${hdfs.src.dir}"
+           includes="org/apache/hadoop/hdfs/server/common/Storage.java,
+                     *.aj"
+           destdir="${build.classes}"
+           debug="${javac.debug}"
+           target="${javac.version}"
+           source="${javac.version}"
+           deprecation="${javac.deprecation}"
+           classpathref="weave.class.path"
+           bootclasspathRef="weave.class.path">
+      <classpath refid="classpath"/>
+    </iajc>
+
+  </target>
+
+
+
+
+
+  <!-- =================================================================
+       olg: compile fi/*.olg
+       ================================================================= -->
+  <target name="olg">
+    <jar jarfile="build/classes/olg.jar">
+      <fileset dir="src/fi/destini" includes="*.olg"/>
+    </jar>
+  </target>
+
+
+  <!-- =================================================================
+       fiaj: compile fi/*.aj only
+       ================================================================= -->
+  <target name="fiaj" depends="init, compile-rcc-compiler">
+
+    <taskdef resource="org/aspectj/tools/ant/taskdefs/aspectjTaskdefs.properties">
+      <classpath>
+	<fileset dir="${lib.dir}" includes="aspect*.jar"/>
+      </classpath>
+    </taskdef>
+
+    <echo message="Start FI-AJ Fast ..."/>
+
+    <iajc encoding="${build.encoding}"
+          srcdir="${fi.src.dir}"
+          includes="*.aj, *.java"
+          destDir="${build.classes}"
+          debug="${javac.debug}"
+          target="${javac.version}"
+          source="${javac.version}"
+          deprecation="${javac.deprecation}"
+          classpathref="weave.class.path"
+          bootclasspathRef="weave.class.path">
+      <classpath refid="classpath"/>
+    </iajc>
+
+
+  </target>
+
+
+
+  <!-- =================================================================
+       fijav: compile fi/*.java only
+       ================================================================= -->
+  <target name="fijav" depends="init, compile-rcc-compiler">
+
+    <taskdef resource="org/aspectj/tools/ant/taskdefs/aspectjTaskdefs.properties">
+      <classpath>
+	<fileset dir="${lib.dir}" includes="aspect*.jar"/>
+      </classpath>
+    </taskdef>
+
+    <echo message="Start FI-JAVA Fast ..."/>
+
+    <iajc encoding="${build.encoding}"
+          srcdir="${fi.src.dir}"
+          includes="*.java"
+          destDir="${build.classes}"
+          debug="${javac.debug}"
+          target="${javac.version}"
+          source="${javac.version}"
+          deprecation="${javac.deprecation}"
+          classpathref="weave.class.path"
+          bootclasspathRef="weave.class.path">
+      <classpath refid="classpath"/>
+    </iajc>
+
+
+  </target>
+
+
+
+
+
+  <!-- =================================================================
+       fibase: compile fi/base/*.java, *.aj
+       ================================================================= -->
+  <target name="fibase" depends="init">
+
+    <echo message="Start FI-BASE ..."/>
+
+    <javac
+       encoding="${build.encoding}"
+       srcdir="${fi.src.dir}"
+       includes="base/*.java"
+       destdir="${build.classes}"
+       debug="${javac.debug}"
+       optimize="${javac.optimize}"
+       target="${javac.version}"
+       source="${javac.version}"
+       deprecation="${javac.deprecation}">
+      <compilerarg line="${javac.args} ${javac.args.warnings}" />
+      <classpath refid="classpath"/>
+    </javac>
+  </target>
+
+
+  <!-- =================================================================
+       firt: weave src/fi/base/ to rt.jar
+       ================================================================= -->
+  <target name="firt" depends="fibase">
+
+    <echo message="  fi.lib.dir = ${fi.lib.dir} "/>
+
+    <taskdef resource="org/aspectj/tools/ant/taskdefs/aspectjTaskdefs.properties">
+      <classpath>
+	<fileset dir="${lib.dir}" includes="aspect*.jar"/>
+      </classpath>
+    </taskdef>
+
+    <path id="ajlibclasspath">
+      <fileset dir="${lib.dir}" includes="aspect*.jar"/>
+      <!-- must add this because iajc cannot find this path automatically -->
+      <!-- <pathelement path="/usr/share/ant/lib/ant.jar"/> -->
+    </path>
+
+    <echo message="Weaving rt.jar ..."/>
+
+    <iajc inpath="${javasdk.file}"
+          outjar="build/woven-rt.jar"
+          outxml="true"
+          srcdir="${fi.src.dir}"
+          includes="base/weavert.aj, base/Context.java, base/ClassWC.java"
+          classpathref="ajlibclasspath">
+      <classpath refid="classpath"/>
+    </iajc>
+  </target>
+
+
+</project>
+

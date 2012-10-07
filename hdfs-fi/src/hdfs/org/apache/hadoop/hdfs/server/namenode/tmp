@@ -1,0 +1,318 @@
+BlocksMap.java:      if(findDatanode(node) >= 0) // the node is already there
+BlocksMap.java:              "Block is already in the list and cannot be inserted.";
+BlocksMap.java:  /** returns true if the node does not already exists and is added.
+BlocksMap.java:   * false if the node already exists.*/
+CheckpointSignature.java:  public void readFields(DataInput in) throws IOException {
+CheckpointSignature.java:    layoutVersion = in.readInt();
+CheckpointSignature.java:    namespaceID = in.readInt();
+CheckpointSignature.java:    cTime = in.readLong();
+CheckpointSignature.java:    editsTime = in.readLong();
+CheckpointSignature.java:    checkpointTime = in.readLong();
+DatanodeDescriptor.java:  void readFieldsFromFSEditLog(DataInput in) throws IOException {
+DatanodeDescriptor.java:    this.name = UTF8.readString(in);
+DatanodeDescriptor.java:    this.storageID = UTF8.readString(in);
+DatanodeDescriptor.java:    this.infoPort = in.readShort() & 0x0000ffff;
+DatanodeDescriptor.java:    this.capacity = in.readLong();
+DatanodeDescriptor.java:    this.dfsUsed = in.readLong();
+DatanodeDescriptor.java:    this.remaining = in.readLong();
+DatanodeDescriptor.java:    this.lastUpdate = in.readLong();
+DatanodeDescriptor.java:    this.xceiverCount = in.readInt();
+DatanodeDescriptor.java:    this.location = Text.readString(in);
+DatanodeDescriptor.java:    this.hostName = Text.readString(in);
+DatanodeDescriptor.java:    setAdminState(WritableUtils.readEnum(in, AdminStates.class));
+DecommissionManager.java:          Thread.sleep(recheckInterval);
+EditLogInputStream.java: * A generic abstract class to support reading edits log data from 
+EditLogInputStream.java:  public abstract int read() throws IOException;
+EditLogInputStream.java:  public abstract int read(byte[] b, int off, int len) throws IOException;
+EditLogOutputStream.java:   * Flush and sync all data that is ready to be flush 
+FSDirectory.java:  private boolean ready = false;
+FSDirectory.java:      this.ready = true;
+FSDirectory.java:   * Block until the object is ready to be used.
+FSDirectory.java:    if (!ready) {
+FSDirectory.java:        while (!ready) {
+FSDirectory.java:    if (!ready) {
+FSDirectory.java:    if (!ready) {
+FSDirectory.java:    if (!ready) {
+FSEditLog.java:  // stores the most current transactionId of this thread.
+FSEditLog.java:  private static final ThreadLocal<TransactionId> myTransactionId = new ThreadLocal<TransactionId>() {
+FSEditLog.java:    private DataOutputBuffer bufReady;    // buffer ready for flushing
+FSEditLog.java:     * Flush ready buffer to persistent store.
+FSEditLog.java:     * while readyBuffer will be flushed and synced.
+FSEditLog.java:    public int read() throws IOException {
+FSEditLog.java:      return fStream.read();
+FSEditLog.java:    public int read(byte[] b, int off, int len) throws IOException {
+FSEditLog.java:      return fStream.read(b, off, len);
+FSEditLog.java:        logVersion = in.readByte();
+FSEditLog.java:        logVersion = in.readInt();
+FSEditLog.java:          opcode = in.readByte();
+FSEditLog.java:          int length = in.readInt();
+FSEditLog.java:          path = FSImage.readString(in);
+FSEditLog.java:          short replication = adjustReplication(readShort(in));
+FSEditLog.java:          mtime = readLong(in);
+FSEditLog.java:            atime = readLong(in);
+FSEditLog.java:            blockSize = readLong(in);
+FSEditLog.java:            blocks = readBlocks(in);
+FSEditLog.java:            int num = in.readInt();
+FSEditLog.java:              oldblk.readFields(in);
+FSEditLog.java:            permissions = PermissionStatus.read(in);
+FSEditLog.java:            clientName = FSImage.readString(in);
+FSEditLog.java:            clientMachine = FSImage.readString(in);
+FSEditLog.java:              readDatanodeDescriptorArray(in);
+FSEditLog.java:          // Delete the file if it already exists.
+FSEditLog.java:          path = FSImage.readString(in);
+FSEditLog.java:          short replication = adjustReplication(readShort(in));
+FSEditLog.java:          int length = in.readInt();
+FSEditLog.java:          String s = FSImage.readString(in);
+FSEditLog.java:          String d = FSImage.readString(in);
+FSEditLog.java:          timestamp = readLong(in);
+FSEditLog.java:          int length = in.readInt();
+FSEditLog.java:          path = FSImage.readString(in);
+FSEditLog.java:          timestamp = readLong(in);
+FSEditLog.java:          int length = in.readInt();
+FSEditLog.java:          path = FSImage.readString(in);
+FSEditLog.java:          timestamp = readLong(in);
+FSEditLog.java:            atime = readLong(in);
+FSEditLog.java:            permissions = PermissionStatus.read(in);
+FSEditLog.java:          long lw = in.readLong();
+FSEditLog.java:          nodeimage.readFields(in);
+FSEditLog.java:          nodeID.readFields(in);
+FSEditLog.java:              FSImage.readString(in), FsPermission.read(in));
+FSEditLog.java:          fsDir.unprotectedSetOwner(FSImage.readString(in),
+FSEditLog.java:              FSImage.readString_EmptyAsNull(in),
+FSEditLog.java:              FSImage.readString_EmptyAsNull(in));
+FSEditLog.java:          fsDir.unprotectedSetQuota(FSImage.readString(in), 
+FSEditLog.java:                                    readLongWritable(in), 
+FSEditLog.java:          fsDir.unprotectedSetQuota(FSImage.readString(in),
+FSEditLog.java:          fsDir.unprotectedSetQuota(FSImage.readString(in),
+FSEditLog.java:                                    readLongWritable(in),
+FSEditLog.java:                                    readLongWritable(in));
+FSEditLog.java:          int length = in.readInt();
+FSEditLog.java:          path = FSImage.readString(in);
+FSEditLog.java:          mtime = readLong(in);
+FSEditLog.java:          atime = readLong(in);
+FSEditLog.java:          delegationTokenId.readFields(in);
+FSEditLog.java:          long expiryTime = readLong(in);
+FSEditLog.java:          delegationTokenId.readFields(in);
+FSEditLog.java:          long expiryTime = readLong(in);
+FSEditLog.java:          delegationTokenId.readFields(in);
+FSEditLog.java:          delegationKey.readFields(in);
+FSEditLog.java:  // a place holder for reading a long
+FSEditLog.java:  private static long readLongWritable(DataInputStream in) throws IOException {
+FSEditLog.java:      longWritable.readFields(in);
+FSEditLog.java:   * written by other threads, not just edits from the calling thread.
+FSEditLog.java:   * Sync all modifications done by this thread.
+FSEditLog.java:   *   - When a thread (client) would like to sync all of its edits, logSync()
+FSEditLog.java:   *     uses a ThreadLocal transaction ID to determine what edit number must
+FSEditLog.java:   * The lack of synchronization on step 2 allows other threads to continue
+FSEditLog.java:    // Fetch the transactionId of this thread. 
+FSEditLog.java:      // if somebody is already syncing, then wait
+FSEditLog.java:      // If this transaction was already flushed, then nothing to do
+FSEditLog.java:      // now, this thread will do the sync
+FSEditLog.java:    // If edits.new already exists in some directory, verify it
+FSEditLog.java:   * A class to read in blocks stored in the old format. The only two
+FSEditLog.java:    public void readFields(DataInput in) throws IOException {
+FSEditLog.java:      this.blkid = in.readLong();
+FSEditLog.java:      this.len = in.readLong();
+FSEditLog.java:  static private DatanodeDescriptor[] readDatanodeDescriptorArray(DataInput in
+FSEditLog.java:    DatanodeDescriptor[] locations = new DatanodeDescriptor[in.readInt()];
+FSEditLog.java:      locations[i].readFieldsFromFSEditLog(in);
+FSEditLog.java:  static private short readShort(DataInputStream in) throws IOException {
+FSEditLog.java:    return Short.parseShort(FSImage.readString(in));
+FSEditLog.java:  static private long readLong(DataInputStream in) throws IOException {
+FSEditLog.java:    return Long.parseLong(FSImage.readString(in));
+FSEditLog.java:  static private Block[] readBlocks(DataInputStream in) throws IOException {
+FSEditLog.java:    int numBlocks = in.readInt();
+FSEditLog.java:      blocks[i].readFields(in);
+FSEditLog.java:    public int read() throws IOException {
+FSEditLog.java:      int ret = super.read();
+FSEditLog.java:    public int read(byte[] data) throws IOException {
+FSEditLog.java:      int ret = super.read(data);
+FSEditLog.java:    public int read(byte[] data, int offset, int length) throws IOException {
+FSEditLog.java:      int ret = super.read(data, offset, length);
+FSImage.java:      "NameNode formatting should be performed before reading the image";
+FSImage.java:          sd.read(); // read and verify consistency with other directories
+FSImage.java:              + " NameNode already contains an image in " + sd.getRoot());
+FSImage.java:      return false; // upgrade saved image already
+FSImage.java:        sd.read(); // read and verify consistency with other directories
+FSImage.java:      sdPrev.read(sdPrev.getPreviousVersionFile());  // read and verify consistency of the prev dir
+FSImage.java:    if (!prevDir.exists()) { // already discarded
+FSImage.java:    this.checkpointTime = readCheckpointTime(sd);
+FSImage.java:  long readCheckpointTime(StorageDirectory sd) throws IOException {
+FSImage.java:        timeStamp = in.readLong();
+FSImage.java:      int odlVersion = oldFile.readInt();
+FSImage.java:        // if the destination file already exists.
+FSImage.java:      checkpointTime = readCheckpointTime(sd);
+FSImage.java:    latestNameSD.read();
+FSImage.java:      // the image is already current, discard edits
+FSImage.java:      // read image version: first appeared in version -1
+FSImage.java:      int imgVersion = in.readInt();
+FSImage.java:      // read namespaceID: first appeared in version -2
+FSImage.java:      this.namespaceID = in.readInt();
+FSImage.java:      // read number of files
+FSImage.java:        numFiles = in.readLong();
+FSImage.java:        numFiles = in.readInt();
+FSImage.java:      // read in the last generation stamp.
+FSImage.java:        long genstamp = in.readLong();
+FSImage.java:      // read file info
+FSImage.java:        path = readString(in);
+FSImage.java:        replication = in.readShort();
+FSImage.java:        modificationTime = in.readLong();
+FSImage.java:          atime = in.readLong();
+FSImage.java:          blockSize = in.readLong();
+FSImage.java:        int numBlocks = in.readInt();
+FSImage.java:              blocks[j].set(in.readLong(), in.readLong(), 
+FSImage.java:              blocks[j].readFields(in);
+FSImage.java:          nsQuota = in.readLong();
+FSImage.java:          dsQuota = in.readLong();
+FSImage.java:          permissions = PermissionStatus.read(in);
+FSImage.java:    int size = in.readInt();
+FSImage.java:      nodeImage.readFields(in);
+FSImage.java:    int size = in.readInt();
+FSImage.java:      INodeFileUnderConstruction cons = readINodeUnderConstruction(in);
+FSImage.java:  // Helper function that reads in an INodeUnderConstruction
+FSImage.java:  static INodeFileUnderConstruction readINodeUnderConstruction(
+FSImage.java:    byte[] name = readBytes(in);
+FSImage.java:    short blockReplication = in.readShort();
+FSImage.java:    long modificationTime = in.readLong();
+FSImage.java:    long preferredBlockSize = in.readLong();
+FSImage.java:    int numBlocks = in.readInt();
+FSImage.java:      blk.readFields(in);
+FSImage.java:    PermissionStatus perm = PermissionStatus.read(in);
+FSImage.java:    String clientName = readString(in);
+FSImage.java:    String clientMachine = readString(in);
+FSImage.java:    int numLocs = in.readInt();
+FSImage.java:      locations[i].readFields(in);
+FSImage.java:      // already exists.
+FSImage.java:     * Public method that reads a serialized Datanode
+FSImage.java:    public void readFields(DataInput in) throws IOException {
+FSImage.java:      id.readFields(in);
+FSImage.java:      long capacity = in.readLong();
+FSImage.java:      long remaining = in.readLong();
+FSImage.java:      long lastUpdate = in.readLong();
+FSImage.java:      int xceiverCount = in.readInt();
+FSImage.java:      // update the DatanodeDescriptor with the data we read in
+FSImage.java:  public static String readString(DataInputStream in) throws IOException {
+FSImage.java:    U_STR.readFields(in);
+FSImage.java:  static String readString_EmptyAsNull(DataInputStream in) throws IOException {
+FSImage.java:    final String s = readString(in);
+FSImage.java:  // Same comments apply for this method as for readString()
+FSImage.java:  public static byte[] readBytes(DataInputStream in) throws IOException {
+FSImage.java:    U_STR.readFields(in);
+FSNamesystem.java:  private static final ThreadLocal<Formatter> auditFormatter =
+FSNamesystem.java:    new ThreadLocal<Formatter>() {
+FSNamesystem.java:  // Threaded object that checks to see if we have been
+FSNamesystem.java:  Daemon hbthread = null;   // HeartbeatMonitor thread
+FSNamesystem.java:  public Daemon lmthread = null;   // LeaseMonitor thread
+FSNamesystem.java:  Daemon smmthread = null;  // SafeModeMonitor thread
+FSNamesystem.java:  public Daemon replthread = null;  // Replication thread
+FSNamesystem.java:  private Daemon dnthread = null;
+FSNamesystem.java:      dtSecretManager.startThreads();
+FSNamesystem.java:    this.hbthread = new Daemon(new HeartbeatMonitor());
+FSNamesystem.java:    this.lmthread = new Daemon(leaseManager.new Monitor());
+FSNamesystem.java:    this.replthread = new Daemon(new ReplicationMonitor());
+FSNamesystem.java:    hbthread.start();
+FSNamesystem.java:    lmthread.start();
+FSNamesystem.java:    replthread.start();
+FSNamesystem.java:    this.dnthread = new Daemon(new DecommissionManager(this).new Monitor(
+FSNamesystem.java:    dnthread.start();
+FSNamesystem.java:      if (hbthread != null) hbthread.interrupt();
+FSNamesystem.java:      if (replthread != null) replthread.interrupt();
+FSNamesystem.java:      if (dnthread != null) dnthread.interrupt();
+FSNamesystem.java:      if (smmthread != null) smmthread.interrupt();
+FSNamesystem.java:      if (dtSecretManager != null) dtSecretManager.stopThreads();
+FSNamesystem.java:        if (lmthread != null) {
+FSNamesystem.java:          lmthread.interrupt();
+FSNamesystem.java:          lmthread.join(3000);
+FSNamesystem.java:    // Verify that the destination does not exist as a directory already.
+FSNamesystem.java:      throw new IOException("Cannot create file "+ src + "; already exists as a directory.");
+FSNamesystem.java:            throw new AlreadyBeingCreatedException(
+FSNamesystem.java:          throw new AlreadyBeingCreatedException(
+FSNamesystem.java:        throw new AlreadyBeingCreatedException("failed to create file " + src + " for " + holder +
+FSNamesystem.java:                                               ", because this file is already being created by " +
+FSNamesystem.java:   * The FSNamesystem will already know the blocks that make up the file.
+FSNamesystem.java:      // thread of Datanode reports bad block before Block reports are sent
+FSNamesystem.java:    assert Thread.holdsLock(this);
+FSNamesystem.java:        + src + " but file is already closed.";
+FSNamesystem.java:          // process, we'd fall out of sync since DNs have already finalized
+FSNamesystem.java:    assert(Thread.holdsLock(heartbeats));
+FSNamesystem.java:          Thread.sleep(5000);  // 5 seconds
+FSNamesystem.java:          Thread.sleep(replicationRecheckInterval);
+FSNamesystem.java:          LOG.warn("ReplicationMonitor thread received InterruptedException." + ie);
+FSNamesystem.java:          LOG.warn("ReplicationMonitor thread received exception. " + ie +  " " +
+FSNamesystem.java:          LOG.warn("ReplicationMonitor thread received Runtime exception. " + t + " " +
+FSNamesystem.java:        // do not schedule more if enough replicas is already pending
+FSNamesystem.java:        // do not schedule more if enough replicas is already pending
+FSNamesystem.java:   * We do not use already decommissioned nodes as a source.
+FSNamesystem.java:        continue; // already reached replication limit
+FSNamesystem.java:      // never use already decommissioned nodes
+FSNamesystem.java:   * We pick node that make sure that replicas are spread across racks and
+FSNamesystem.java:                                    +block+" has already been removed from node "+node);
+FSNamesystem.java:   * Rereads the config to get hosts and exclude list file names.
+FSNamesystem.java:   * Rereads the files to update the hosts and exclude lists.  It
+FSNamesystem.java:    // Reread the config to get dfs.hosts and dfs.hosts.exclude filenames.
+FSNamesystem.java:      if (reached > 0) {  // threshold has already been reached before
+FSNamesystem.java:      smmthread = new Daemon(new SafeModeMonitor());
+FSNamesystem.java:      smmthread.start();
+FSNamesystem.java:   * This thread starts when the threshold level is reached.
+FSNamesystem.java:          Thread.sleep(recheckInterval);
+FSNamesystem.java:      smmthread = null;
+FSNamesystem.java:      NameNode.stateChangeLog.info("STATE* Safe mode is already OFF.");
+FSNamesystem.java:      String msg = block + " is already commited, storedBlock == null.";
+FSNamesystem.java:      String msg = block + " is already commited, !fileINode.isUnderConstruction().";
+FSNamesystem.java:      String msg = block + " is already being recovered, ignoring this request.";
+FSNamesystem.java:    id.readFields(in);
+Host2NodesMap.java:  /** Check if node is already in the map. */
+Host2NodesMap.java:    hostmapLock.readLock().lock();
+Host2NodesMap.java:      hostmapLock.readLock().unlock();
+Host2NodesMap.java:    hostmapLock.readLock().lock();
+Host2NodesMap.java:      hostmapLock.readLock().unlock();
+Host2NodesMap.java:    hostmapLock.readLock().lock();
+Host2NodesMap.java:      hostmapLock.readLock().unlock();
+INodeDirectory.java:   * @return  null if the child with this name already exists; 
+INodeDirectory.java:   * @return null if the node already exists; inserted INode, otherwise
+INodeDirectory.java:   *          or null if it already exists.
+INodeFileUnderConstruction.java:   * add this target if it does not already exists
+INodeFileUnderConstruction.java:        return;  // target already exists
+JspHelper.java:    int readOffset = 0;
+JspHelper.java:        numRead = blockReader.readAll(buf, readOffset, (int)amtToRead);
+JspHelper.java:          throw new IOException("Could not read data from datanode");
+JspHelper.java:      readOffset += numRead;
+JspHelper.java:        id.readFields(in);
+LeaseManager.java:          Thread.sleep(2000);
+ListPathsServlet.java:  public static final ThreadLocal<SimpleDateFormat> df =
+ListPathsServlet.java:    new ThreadLocal<SimpleDateFormat>() {
+NameNode.java:  private Thread emptier;
+NameNode.java:  /** Format a new filesystem.  Destroys any filesystem that may already
+NameNode.java:    this.emptier = new Thread(new Trash(conf).getEmptier(), "Trash Emptier");
+NameNode.java:   * Stop all NameNode threads and wait for all to finish.
+NameNode.java:   * connect.  Re-reads conf by creating new Configuration object and 
+NameNode.java:        if (!(System.in.read() == 'Y')) {
+NameNode.java:        while(System.in.read() != '\n'); // discard the enter-key
+NameNode.java:      if (!(System.in.read() == 'Y')) {
+NameNode.java:      while(System.in.read() != '\n'); // discard the enter-key
+NamenodeFsck.java:          Thread.sleep(10000);
+NamenodeFsck.java:      while ((cnt = blockReader.read(buf, 0, buf.length)) > 0) {
+PendingReplicationBlocks.java: * 3)  a thread that periodically identifies replication-requests
+PendingReplicationBlocks.java:  Daemon timerThread = null;
+PendingReplicationBlocks.java:    this.timerThread = new Daemon(new PendingReplicationMonitor());
+PendingReplicationBlocks.java:    timerThread.start();
+PendingReplicationBlocks.java:   * A periodic thread that scans for blocks that never finished
+PendingReplicationBlocks.java:          Thread.sleep(period);
+PendingReplicationBlocks.java:                "PendingReplicationMonitor thread received exception. " + ie);
+PendingReplicationBlocks.java:   * Shuts down the pending replication monitor thread.
+PendingReplicationBlocks.java:   * Waits for the thread to exit.
+PendingReplicationBlocks.java:    timerThread.interrupt();
+PendingReplicationBlocks.java:      timerThread.join(3000);
+SecondaryNameNode.java:        Thread.sleep(1000 * period);
+SecondaryNameNode.java:    Daemon checkpointThread = new Daemon(new SecondaryNameNode(tconf)); 
+SecondaryNameNode.java:    checkpointThread.start();
+SecondaryNameNode.java:            // do nothing, directory is already created
+StreamFile.java:      while ((bytesRead = in.read(buf)) != -1) {
+TransferFsImage.java:   * @param request the object from which this servelet reads the url contents
+TransferFsImage.java:          // This will read at most half of the image
+TransferFsImage.java:          infile.read(buf);
+TransferFsImage.java:        num = infile.read(buf);
+TransferFsImage.java:        num = stream.read(buf);
+UpgradeObjectNamenode.java: * Data-node upgrades are run in separate threads.
+metrics/NameNodeActivtyMBean.java: *        dfs.class=org.apache.hadoop.metrics.spi.NullContextWithUpdateThread
+metrics/NameNodeActivtyMBean.java: * The context with the update thread is used to average the data periodically

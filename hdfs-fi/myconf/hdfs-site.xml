@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+<!-- Put site-specific property overrides in this file. -->
+
+<configuration>
+
+  
+  <!-- haryadi: dfs.replication -->
+  <property><name>dfs.replication</name>
+    <value>2</value></property>
+
+  <property><name>dfs.replication.min</name>
+    <value>1</value></property>
+  
+  <!-- haryadi: nn storage dir -->
+  <property><name>dfs.name.dir</name>
+	  <!--<value>/tmp/fi/hadoop-${user.name}/dfs/name1,/tmp/fi/hadoop-${user.name}/dfs/name2,/tmp/fi/hadoop-${user.name}/dfs/name3</value></property>-->
+         <value>/tmp/fi/hadoop-${user.name}/dfs/name</value></property>
+  
+  <!-- haryadi: retry connect to dead node, def 5, i.e.
+       how many times we want to try to connect to a dead node,
+       before we just recreate a new pipeline with the surviving nodes. -->
+  <property><name>dfs.client.block.recovery.retries</name>
+    <value>0</value></property>
+
+  <!-- haryadi: createBOS retry first stage, def 3
+       how many times we try to ask the namenode for a new node -->
+  <property><name>dfs.client.block.write.retries</name>
+    <value>100</value></property>
+
+  <!-- haryadi: how many times we try talk to the namenode, def 5 -->
+  <property><name>dfs.client.block.write.locateFollowingBlock.retries</name>
+    <value>100</value></property>
+
+  <property><name>dfs.replication.interval</name>
+    <value>1</value></property>
+  
+
+</configuration>

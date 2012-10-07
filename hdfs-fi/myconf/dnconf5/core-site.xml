@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+<!-- Put site-specific property overrides in this file. -->
+
+<configuration>
+
+  <!-- haryadi: fs.default.name, i.e., where is the namenode -->
+  <property><name>fs.default.name</name>
+    <value>hdfs://localhost:9000</value></property>
+
+
+  <!-- haryadi: make rpc retry to zero, for faster experiments -->
+  <property><name>ipc.client.connect.max.retries</name>
+    <value>0</value></property>
+
+
+  <!-- haryadi: disallow dna transfer to interfere ...
+       but if we're testing the dna transfer workload, 
+       we should set this to true ..
+       ideally we should set this up at the client side -->
+  <property><name>fi.disallow.dna.transfer</name>
+    <value>true</value></property>
+
+  <!-- haryadi: rack aware -->
+  <property><name>fi.rack.aware</name>
+    <value>true</value></property>
+  
+  <!-- haryadi: non-random choose nodes -->
+  <property><name>fi.choose.nodes.non.random</name>
+    <value>true</value></property>
+  
+
+</configuration>

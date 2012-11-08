@@ -1,0 +1,17 @@
+The PCheck project is based on code written by the following people:
+
+Thanh Do (thanhdo@cs.wisc.edu)
+Haryadi S. Gunawi (haryadi@cs.uchicago.edu)
+Pallavi Joshi (pallavi@cs.berkeley.edu)
+
+The source code is released under the modified BSD license.
+
+Some relevant publications are listed below:
+
+1. PREFAIL: A Programmable Tool for Multiple-Failure Injection
+   Pallavi Joshi, Haryadi S. Gunawi, and Koushik Sen
+   In 26th ACM SIGPLAN Conference on Object-Oriented Programming, Systems, Languages, and Applications (OOPSLA'11)
+
+2. FATE and DESTINI: A Framework for Cloud Recovery Testing
+   Haryadi S. Gunawi, Thanh Do, Pallavi Joshi, Peter Alvaro, Joseph M. Hellerstein, Andrea C. Arpaci-Dusseau, Remzi H. Arpaci-Dusseau, Koushik Sen, and Dhruba Borthakur
+   In 8th USENIX Symposium on Networked Systems Design and Implementation (NSDI'11)

@@ -2,7 +2,7 @@
 import os
 import sys
 
-covDir = "/Users/pallavi/Research/faultInjection/zook-fi/depth-first/"
+covDir = "/home/st/pallavi/Research/PCheck/zook-fi/depth-first/"
 branches = set([])
 
 for fName in os.listdir(covDir):

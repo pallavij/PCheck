@@ -2,7 +2,7 @@
 import os
 import sys
 
-covDir = "/Users/pallavi/Research/faultInjection/zook-fi/coverage/"
+covDir = "/home/st/pallavi/Research/PCheck/zook-fi/coverage/"
 fName = covDir + "bcov.txt"
 
 branches = set([])

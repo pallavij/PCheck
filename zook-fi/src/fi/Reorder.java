@@ -233,7 +233,7 @@ public class Reorder extends Thread{
 					//	Util.MESSAGE("Going to record the event " + e);
 					//}
 					History.recordEvtWoken(events, e, objToNotf, evtsWoken, evtsWokenWONode, absStates, absQStates);	
-					History.recordCoverage(e);
+					//History.recordCoverage(e);
 				}
 			}
 			

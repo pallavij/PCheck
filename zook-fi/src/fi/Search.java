@@ -390,6 +390,7 @@ public class Search {
 	       return d.dep(e1, e2, sStates, qstate, ev1, ev2);
        }
 
+       
 
 	public static Pair<Event, String> wakeUpRandom(){
 		List<Pair<Event, Object>> events = new LinkedList<Pair<Event, Object>>(Reorder.getEvents());

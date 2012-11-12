@@ -109,6 +109,7 @@ class ParsedEvt{
 	public static ParsedEvt getParsedEvt(Event evt, String e){
 		ParsedEvt pe = new ParsedEvt();
 
+                /*********
 		if(evt != null){
 			pe.isPollEvent = evt.isPollEvent();
 			pe.isSleepEvent = evt.isSleepEvent();
@@ -120,7 +121,8 @@ class ParsedEvt{
 			}
 			pe.queue = evt.q.toString();
 		}
-		else{
+                **********/
+		//else{
 			pe.isPollEvent = Parse.isPollEvent(e);
 			pe.isSleepEvent = Parse.isSleepEvent(e);
 			pe.receiver = Parse.getNode(e);
@@ -130,7 +132,7 @@ class ParsedEvt{
 				pe.epoch = Parse.getEpoch(e);
 			}
 			pe.queue = Parse.getQueue(e);
-		}
+		//}
 	
 		return pe;
 	}

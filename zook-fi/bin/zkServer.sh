@@ -104,7 +104,8 @@ case $1 in
 	FM_BOOT_OPTS="-Xbootclasspath:$FM_WOVENRT:lib/emma.jar:lib/emma_ant.jar"
 	#FM_BOOT_OPTS="-Xbootclasspath:$FM_WOVENRT:lib/cobertura/cobertura.jar"
 	nodeId=$3
-	((ctlPort=nodeId+5000))
+	#((ctlPort=nodeId+5000))
+        ctlPort=`expr $nodeId + 5000`
 
         java "-Dzookeeper.log.dir=${ZOO_LOG_DIR}" \
 	    "-Dzookeeper.root.logger=${ZOO_LOG4J_PROP}"  "-Demma.rt.control.port=${ctlPort}"	\
@@ -112,7 +113,7 @@ case $1 in
 	    > /tmp/fi/logs/node$nodeId.out &
         
 	#java "-Dzookeeper.log.dir=${ZOO_LOG_DIR}" \
-	#"-Dzookeeper.root.logger=${ZOO_LOG4J_PROP} -Dnet.sourceforge.cobertura.datafile=/Users/pallavi/Research/faultInjection/zook-fi/cobertura/metadata.ser"	\
+	#"-Dzookeeper.root.logger=${ZOO_LOG4J_PROP} -Dnet.sourceforge.cobertura.datafile=/home/st/pallavi/Research/PCheck/zook-fi/cobertura/metadata.ser"	\
 	#    $FM_BOOT_OPTS -cp build/cobertura-classes:$CLASSPATH $JVMFLAGS $ZOOMAIN $ZOOCFG \
 	#    > /tmp/fi/logs/node$nodeId.out &
         
@@ -138,9 +139,10 @@ case $1 in
             echo "error: could not find file $ZOOPIDFILE"
             exit 1
         else
-	    ((ctlPort=nodeId+5000))
+	    #((ctlPort=nodeId+5000))
+            ctlPort=`expr $nodeId + 5000`
 	    #PALLAVI: you might not want to kill the nodes for some workloads 
-	    java -cp $CLASSPATH emma ctl -connect localhost:${ctlPort} -command coverage.dump,/Users/pallavi/Research/faultInjection/zook-fi/emma/coverage${nodeId}.emma,true,true -command coverage.reset
+	    java -cp $CLASSPATH emma ctl -connect localhost:${ctlPort} -command coverage.dump,/home/st/pallavi/Research/PCheck/zook-fi/emma/coverage${nodeId}.emma,true,true -command coverage.reset
             kill -9 $(cat $ZOOPIDFILE)
             rm $ZOOPIDFILE
             echo STOPPED

@@ -102,7 +102,7 @@ CLASSPATH=$ZOOCFGDIR:$CLASSPATH
 
 
 # haryadi, change this:
-FM_MY_JARS="/Users/pallavi/Research/faultInjection/zook-fi/lib/fi"
+FM_MY_JARS="/home/st/pallavi/Research/PCheck/zook-fi/lib/fi"
 
 # ------------------------                                                               
 # 4) aspect stuff                                                                        

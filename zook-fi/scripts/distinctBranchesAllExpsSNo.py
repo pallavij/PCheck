@@ -2,8 +2,8 @@
 import os
 import sys
 
-#covDir = "/Users/pallavi/Research/faultInjection/zook-fi/random/"
-covDir = "/Users/pallavi/Research/faultInjection/zook-fi/depth-first/"
+#covDir = "/home/st/pallavi/Research/PCheck/zook-fi/random/"
+covDir = "/home/st/pallavi/Research/PCheck/zook-fi/depth-first/"
 
 
 allBranches = set([])

@@ -12,9 +12,9 @@ public class Election{
 
 	public static void main(String[] args){
 		try{
-			s1 = new Server("One", "/Users/pallavi/Research/faultInjection/zook-fi/conf/zoo1.cfg");
-			s2 = new Server("Two", "/Users/pallavi/Research/faultInjection/zook-fi/conf/zoo2.cfg");
-			s3 = new Server("Three", "/Users/pallavi/Research/faultInjection/zook-fi/conf/zoo3.cfg");
+			s1 = new Server("One", "/home/st/pallavi/Research/PCheck/zook-fi/conf/zoo1.cfg");
+			s2 = new Server("Two", "/home/st/pallavi/Research/PCheck/zook-fi/conf/zoo2.cfg");
+			s3 = new Server("Three", "/home/st/pallavi/Research/PCheck/zook-fi/conf/zoo3.cfg");
 
 			//s1.start();
 			//s2.start();

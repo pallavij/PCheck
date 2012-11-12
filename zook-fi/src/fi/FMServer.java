@@ -401,6 +401,7 @@ public class FMServer {
 	    QueueContext q = new QueueContext(nodeId, loc);
 	    Event e = new Event(Event.EType.NETREAD, mctx, q);
 	    e.setSourceLoc(srcloc);
+            History.recordCoverage(e);
 
 	    //if(!Reorder.isNormalExec(){
 	    //	    updateWaitState(nodeIdVal, true); 
@@ -478,6 +479,7 @@ public class FMServer {
 	    RequestContext rctx = new RequestContext(nodeId, othrNodeId, newpacket);
 	    Event e = new Event(Event.EType.NETREAD, rctx, null);
 	    e.setSourceLoc(srcloc);
+            History.recordCoverage(e);
 
 	    Object waitObj = new Object();
             Util.MESSAGE("Adding a message read event");
@@ -549,6 +551,7 @@ public class FMServer {
 	    QueueContext q = new QueueContext(nodeId, loc);
 	    Event e = new Event(Event.EType.POLL, null, q, stack);
 	    e.setSourceLoc(srcloc);
+            History.recordCoverage(e);
 
 	    Object waitObj = new Object();
 	    Reorder.addAndWait(e, waitObj);
@@ -634,6 +637,7 @@ public class FMServer {
 	    Event e = new Event(Event.EType.SLEEP, null, null, stack+"\n");
 	    e.setSourceLoc(srcloc);
 	    e.setNodeId(Util.getIdStrFromIntId(sid));
+            History.recordCoverage(e);
 	    
 	    Object waitObj = new Object();
 	    Reorder.addAndWait(e, waitObj);

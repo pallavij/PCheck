@@ -21,8 +21,8 @@
   <!-- =================================================================
        FI properties (please modify accordingly, my setup is for MAC)
        ================================================================= -->
-  <property name="java.classes.dir" location="/System/Library/Frameworks/JavaVM.framework/Versions/CurrentJDK/Classes"/>
-  <property name="javasdk.file" location="${java.classes.dir}/classes.jar"/>
+  <property name="java.classes.dir" location="/usr/lib/jvm/java-6-openjdk-amd64/jre/lib"/>
+  <property name="javasdk.file" location="${java.classes.dir}/rt.jar"/>
   <property name="jsse.file" location="${java.classes.dir}/jsse.jar"/>
   <property name="jce.file"  location="${java.classes.dir}/jce.jar"/>  
   <property name="antjar.file" location="/usr/share/ant/lib/ant.jar"/> <!-- for linux? -->

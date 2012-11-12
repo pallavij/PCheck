@@ -1,0 +1,154 @@
+<project name="test" default="run" basedir=".">
+  
+  
+  <!-- some shortcuts 
+       in general, grep for all "haryadi" .. if you find my name 
+       that is specific to my setup -->
+  <property name="zookeeper.root.dir" location="/home/st/pallavi/Research/PCheck/zook-fi"/>
+  <property name="zookeeper.build.class" location="${zookeeper.root.dir}/build/classes"/>
+  <property name="fi.lib.dir" location="${zookeeper.root.dir}/lib/fi"/>
+  <property name="aspectjlib" location="${fi.lib.dir}/aspectj"/>
+  <property name="rpclib" location="${fi.lib.dir}/xmlrpc"/>
+  <property name="jollib" location="${fi.lib.dir}/jol"/>
+
+  <property name="java.classes.dir" location="/usr/lib/jvm/java-6-openjdk-amd64/jre/lib"/>
+  <property name="javasdk.file" location="${java.classes.dir}/rt.jar"/>
+  <property name="jsse.file" location="${java.classes.dir}/jsse.jar"/>
+  <property name="jce.file"  location="${java.classes.dir}/jce.jar"/>
+  <property name="antjar.file" location="/usr/share/ant/lib/ant.jar"/> <!-- for linux? -->
+
+
+
+  <!-- =================================================================
+  Emma related definitions
+  ================================================================= -->
+  <!-- directory that contains emma.jar and emma_ant.jar: -->
+  <property name="emma.dir" value="${zookeeper.root.dir}/lib" />
+  <path id="emma.lib">
+	<pathelement location="${emma.dir}/emma.jar" />
+	<pathelement location="${emma.dir}/emma_ant.jar" />
+  </path>
+  <taskdef resource="emma_ant.properties" classpathref="emma.lib" />
+  <property name="emma.enabled" value="true" />
+  <!--=================================================================-->
+  
+  
+  <!-- =================================================================
+  Cobertura related definitions
+  ================================================================= -->
+  <property name="cobertura.report.dir" value="${zookeeper.root.dir}/cobertura"/>
+  <property name="cobertura.dir" value="${zookeeper.root.dir}/lib/cobertura"/>
+  <property name="cobertura.build.classes" value="${zookeeper.root.dir}/build/cobertura-classes"/>
+
+  <property name="cobertura.metadata.out.file" value="${zookeeper.root.dir}/cobertura/metadata.ser"/>
+
+  <path id="cobertura.classpath">
+	  <fileset dir="${cobertura.dir}">
+		    <include name="*.jar" />
+	  </fileset>
+  </path>
+  <!--<taskdef classpathref="cobertura.classpath" resource="tasks.properties"/>-->
+  <!--=================================================================-->
+
+
+  <!-- NOTE: we need paths to: -->
+  <path id="required.lib.path">
+    
+    <!-- 1. zookeeper's lib such as LogFactory etc. -->
+    <fileset dir="${zookeeper.root.dir}/lib" includes="**/*.jar" excludes="fi/**/*.jar"/>
+
+    <!-- 2. conf/ dir to load hdfs-site.xml and core-site.xml -->
+    <pathelement location="${zookeeper.root.dir}/conf"/>
+    <pathelement location="${zookeeper.build.class}"/>
+
+
+    <!-- 3. aspectj jars -->
+    <pathelement location="${aspectjlib}/aspectjrt-1.6.5.jar"/>
+    <pathelement location="${aspectjlib}/aspectjtools-1.6.5.jar"/>
+    
+    <!-- 3. jsse.jar (because we're booting from woven-rt.jar) -->
+    <pathelement location="${jsse.file}"/>
+
+    <!-- 4. jol.jar (for FROG only, thanh doesn't need this -->
+    <pathelement location="${jollib}/jol.jar"/>
+
+    <!-- 5. xml rpc -->
+    <pathelement location="${rpclib}/xmlrpc-server-3.1.3.jar"/>
+    <pathelement location="${rpclib}/xmlrpc-client-3.1.3.jar"/>
+    <pathelement location="${rpclib}/xmlrpc-common-3.1.3.jar"/>
+    <pathelement location="${rpclib}/ws-commons-util-1.0.2.jar"/>
+    <pathelement location="${rpclib}/commons-logging-1.1.jar"/>
+    
+ </path>
+
+
+  <!-- init -->
+  <target name="init" >
+    <tstamp/>
+    <mkdir dir="build"/>
+  </target>
+
+  <!-- compile -->
+  <target name="compile" depends="init">
+    <javac srcdir="src" destdir="build" debug="on"
+        includes="*.java"
+        classpathref="required.lib.path"/>
+  </target>
+  
+
+  <!-- run: note that we set dir to zookeeper.root.dir so the execution
+       of this driver is in zookeeper -->
+  <target name="run" depends="compile">
+    <java classname="org.fi.Main" 
+	  classpath="build" 
+	  fork="true"
+	  dir="${zookeeper.root.dir}"
+          classpathref="required.lib.path">
+      <bootclasspath>
+	<pathelement location="${zookeeper.root.dir}/build/woven-rt.jar"/>
+      </bootclasspath>
+    </java>
+
+    <!--<antcall target="emma-ctl"/>--> 
+    <!--<antcall target="emma-report"/>-->
+    <!--<antcall target="coverage-report"/>--> 
+  </target>
+
+  
+  <target name="emma-ctl">
+	  <emma enabled="${emma.enabled}">
+		  <ctl connect="localhost:47653" >
+		  <command name="coverage.get" args="/home/st/pallavi/Research/PCheck/zook-fi/emma/coverage.emma" />
+		  <command>coverage.reset</command>
+		  </ctl>
+	  </emma>
+  </target>
+  
+
+  <target name="emma-report">
+      <emma enabled="${emma.enabled}">
+      <report>
+	  <infileset dir="${zookeeper.root.dir}/emma" includes="*.emma"/>
+	  <sourcepath location="${zookeeper.root.dir}/src/java/main"/>
+	  <html outfile="${zookeeper.root.dir}/index.htm"/>
+      </report>
+      </emma>
+  </target>
+
+
+  <target name="coverage-report">
+	<cobertura-report format="html" datafile="${cobertura.metadata.out.file}" destdir="${cobertura.report.dir}">  
+		<fileset dir="${zookeeper.root.dir}/src/java/main">
+			 <include name="**/*.java" />
+		</fileset>	
+	</cobertura-report>  
+  </target>
+
+
+  <!-- clean -->
+  <target name="clean">
+    <delete dir="build"/>
+  </target>
+
+</project>
+

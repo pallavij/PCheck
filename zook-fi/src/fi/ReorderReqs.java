@@ -214,7 +214,7 @@ public class ReorderReqs extends Thread{
 
 				if(record){
 					History.recordEvtWoken(events, e, objToNotf, evtsWoken, evtsWokenWONode, absStates, absQStates);	
-					History.recordCoverage(e);
+					//History.recordCoverage(e);
 				}
 			}
 			

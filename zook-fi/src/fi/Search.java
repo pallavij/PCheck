@@ -269,7 +269,7 @@ public class Search {
 				boolean isFair2 = isFair(e2, newEvtOrder, newENodeOrder);
 
 				boolean dep = areDep((new Integer(e1.hashCode())).toString(), (new Integer(e2.hashCode())).toString(), 
-						state, qState, e1, e2);
+						state, qState);
 
 				if(isFair1 && isFair2 && dep){
 					boolean d = done(e1, e2, evtOrder, History.getEvtOrdersInHist());
@@ -366,7 +366,9 @@ public class Search {
 		return false;	
 	}
 
-       public static boolean areDep(String e1, String e2, String state, String qstate, Event ev1, Event ev2){
+
+       /****************
+       public static boolean areDep(String e1, String e2, String state, String qstate){
 	       String[] ss = state.split(":");
 	       List<Pair<Long, Long>> sStates = new LinkedList<Pair<Long, Long>>();
 	       
@@ -389,8 +391,29 @@ public class Search {
 
 	       return d.dep(e1, e2, sStates, qstate, ev1, ev2);
        }
+       ******************/
 
        
+       public static boolean areDep(String e1, String e2, String state, String qstate){
+                String depCompDir = FMLogic.TMPFI + "depComp/";
+                
+		if(!(new File(depCompDir)).exists())
+			Util.mkDir(depCompDir);
+		
+		Util.stringToFileContent(e1, depCompDir + "e1"); 
+		Util.stringToFileContent(e2, depCompDir + "e2");
+		Util.stringToFileContent(state, depCompDir + "state");
+		Util.stringToFileContent(qstate, depCompDir + "qstate");
+
+                Util.runCommand("./policies/dep1.py");
+
+		String res = Util.fileContentToString(depCompDir + "res");
+		if(res.contains("true"))
+			return true;
+		else
+			return false;
+      
+       } 
 
 	public static Pair<Event, String> wakeUpRandom(){
 		List<Pair<Event, Object>> events = new LinkedList<Pair<Event, Object>>(Reorder.getEvents());

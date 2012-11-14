@@ -149,7 +149,7 @@
   <!-- =================================================================
        Cobertura related definitions
        ================================================================= -->
-  <property name="cobertura.dir" value="/Users/pallavi/Research/faultInjection/zook-fi/lib/cobertura"/>
+  <property name="cobertura.dir" value="/home/st/pallavi/Research/PCheck/zook-fi/lib/cobertura"/>
   <property name="cobertura.build.classes" value="${build.dir}/cobertura-classes" />
   <property name="cobertura.metadata.out.file" value="${basedir}/cobertura/metadata.ser"/>
 

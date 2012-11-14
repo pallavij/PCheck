@@ -405,7 +405,7 @@ public class Search {
 		Util.stringToFileContent(state, depCompDir + "state");
 		Util.stringToFileContent(qstate, depCompDir + "qstate");
 
-                Util.runCommand("./policies/dep1.py");
+                Util.runCommand("./policies/dep.py");
 
 		String res = Util.fileContentToString(depCompDir + "res");
 		if(res.contains("true"))
